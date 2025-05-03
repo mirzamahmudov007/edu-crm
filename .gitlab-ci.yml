@@ -1,0 +1,75 @@
+variables:
+  DOCKER_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
+stages:
+  - build
+  - deploy
+
+# Build Stage - Docker image yaratish va push qilish
+build:
+  image: docker:27.3.0-cli-alpine3.20
+  services:
+    - docker:dind
+  stage: build
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - echo "Main branch uchun Docker image build qilinmoqda..."
+    - docker build -t $DOCKER_IMAGE -f Dockerfile . || { echo 'Main branch uchun build xato'; exit 1; }
+    - docker push $DOCKER_IMAGE
+    - docker rmi $DOCKER_IMAGE
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+
+# Deploy Stage - Docker orqali serverga deploy qilish
+deploy:
+  image: ubuntu:22.04
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+  before_script:
+    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client rsync curl -y )'
+    - eval $(ssh-agent -s)
+    - chmod 400 "$SSH_PRIVATE_KEY"
+    - ssh-add "$SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+  script:
+    # Docker container deploy qilish
+    - |
+      echo "Serverga ulanish va deploy jarayoni boshlanmoqda..."
+      ssh -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY $USER@$SERVER_IP <<EOF
+        docker login -u '$CI_REGISTRY_USER' -p '$CI_REGISTRY_PASSWORD' $CI_REGISTRY && docker pull '$DOCKER_IMAGE'
+        
+        docker network ls | grep -w "$APP_NETWORK" || docker network create "$APP_NETWORK"
+
+        # Eski container'ni to'xtatish va o'chirish
+        docker stop "$APP_NAME" || true
+        docker rm "$APP_NAME" || true
+
+        # Yangi container'ni ishga tushirish
+        docker run -d \
+          -p $EXTERNAL_PORT:$INTERNAL_PORT \
+          --name "$APP_NAME" \
+          --network="$APP_NETWORK" \
+          "$DOCKER_IMAGE"
+
+        echo "Docker container muvaffaqiyatli deploy qilindi."
+      EOF
+
+#    # Health check qilish
+#    - |
+#      echo "Health check boshlanmoqda: $HEALTH_CHECK_URL"
+#      for i in {1..5}; do
+#        if curl -s "$HEALTH_CHECK_URL" | grep "healthy"; then
+#          echo "Health check muvaffaqiyatli o'tdi."
+#          exit 0
+#        fi
+#        echo "Health check o'tmadi, 5 soniyadan so'ng qayta uriniladi..."
+#        sleep 5
+#      done
+#      echo "Health check muvaffaqiyatsiz yakunlandi."
+#      exit 1
+  
+  environment:
+    name: production
+    url: $HEALTH_CHECK_URL
+#          -p 127.0.0.1:$EXTERNAL_PORT:$INTERNAL_PORT \
