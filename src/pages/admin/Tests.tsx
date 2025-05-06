@@ -79,7 +79,7 @@ const AdminTests: React.FC = () => {
   const fetchTestResults = async (testId: number) => {
     try {
       setLoadingResults(true);
-      const response = await fetch(`http://localhost:8081/api/test-results/${testId}`, {
+      const response = await fetch(`https://api.lms.itechacademy.uz/api/test-results/${testId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
