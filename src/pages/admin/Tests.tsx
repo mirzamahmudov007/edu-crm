@@ -76,6 +76,36 @@ const AdminTests: React.FC = () => {
     }
   };
 
+  const exportTestToWord = async (testId: number) => {
+    try {
+      const response = await fetch(`https://api.lms.itechacademy.uz/api/tests/export/${testId}/word`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Test nomini fayl nomi sifatida ishlatish
+      const test = tests.find(t => t.id === testId);
+      const fileName = test ? `test_${test.title.replace(/[^a-zA-Z0-9]/g, '_')}.docx` : `test_${testId}.docx`;
+      
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      message.success('Test muvaffaqiyatli export qilindi');
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error('Export jarayonida xatolik yuz berdi');
+    }
+  };
+
   const fetchTestResults = async (testId: number) => {
     try {
       setLoadingResults(true);
@@ -187,6 +217,12 @@ const AdminTests: React.FC = () => {
             danger
             onClick={() => handleDelete(record.id)}
           />
+           <Button
+        type="primary"
+        onClick={() => exportTestToWord(record.id)}
+      >
+        Word
+      </Button>
         </Space>
       ),
     },
