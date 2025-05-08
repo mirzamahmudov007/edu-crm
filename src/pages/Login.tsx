@@ -60,7 +60,7 @@ const Login: React.FC = () => {
                 <span className="text-orange-400"> Academy</span>
               </div>
             </div>
-            <p className="text-[green] text-lg">Test tizimiga kirish</p>
+            <p className="text-[white] text-lg">Test tizimiga kirish</p>
           </div>
 
           {/* Form section */}
