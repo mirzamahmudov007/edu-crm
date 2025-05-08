@@ -1,16 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { Card, Button, Table, Tag, message, Space, Typography } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { getStudentTests } from '../../services/tests.service';
-import { FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 
-const { Title, Text } = Typography;
+import React, { useEffect, useState } from 'react';
+import { Table, Button, Space, Tag, message } from 'antd';
+import { FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { getStudentTests } from '../../services/tests.service';
+import { useNavigate } from 'react-router-dom';
+
+interface Test {
+  id: number;
+  testAccessId: string;
+  test: {
+    id: number;
+    title: string;
+    description: string;
+    duration: number;
+  };
+  submissionTime: string | null;
+}
 
 const StudentTests: React.FC = () => {
-  const [tests, setTests] = useState<any[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
+const navigate = useNavigate();
   useEffect(() => {
     fetchTests();
   }, []);
@@ -18,25 +28,38 @@ const StudentTests: React.FC = () => {
   const fetchTests = async () => {
     try {
       setLoading(true);
-      const data = await getStudentTests();
+      const data :any = await getStudentTests();
       setTests(data);
     } catch (error) {
-      console.error('Testlarni olishda xatolik:', error);
-      message.error('Testlarni olishda xatolik yuz berdi');
+      console.error('Sinovlarni yuklashda xatolik:', error);
+      message.error('Sinovlarni yuklab bo‘lmadi');
     } finally {
       setLoading(false);
     }
   };
 
+   const handleStartTest = (testAccessId: string) => {
+    navigate(`/test/${testAccessId}`)
+    console.log(`Starting test: ${testAccessId}`);
+    message.info(`Test ${testAccessId} would start now`);
+  };
+
+  const handleViewResults = () => {
+    navigate(`/student/results`)
+    console.log('Viewing results');
+    message.info('Navigating to results page');
+  };
+
   const columns = [
     {
-      title: 'Test Nomi',
+      title: 'Test nomi',
       dataIndex: ['test', 'title'],
       key: 'title',
+      width: '25%',
       render: (text: string) => (
         <Space>
-          <FileTextOutlined style={{ color: '#1890ff' }} />
-          <Text strong>{text}</Text>
+          <FileTextOutlined style={{ color: '#1890ff', fontSize: '18px' }} />
+          <span className="font-semibold">{text}</span>
         </Space>
       ),
     },
@@ -44,56 +67,54 @@ const StudentTests: React.FC = () => {
       title: 'Tavsif',
       dataIndex: ['test', 'description'],
       key: 'description',
+      width: '30%',
       ellipsis: true,
     },
     {
-      title: 'Vaqt (minut)',
+      title: 'Davomiyligi (daq)',
       dataIndex: ['test', 'duration'],
       key: 'duration',
-      render: (duration: number) => duration || 'Ko\'rsatilmagan',
+      width: '15%',
+      render: (duration: number) => duration || 'Ko‘rsatilmagan',
     },
     {
-      title: 'Holat',
+      title: 'Holati',
       key: 'status',
-      render: (record: any) => {
-        if (record.submissionTime) {
-          return (
-            <Tag icon={<CheckCircleOutlined />} color="success">
-              Bajarilgan
-            </Tag>
-          );
-        }
-        return (
+      width: '15%',
+      render: (record: Test) => (
+        record.submissionTime ? (
+          <Tag icon={<CheckCircleOutlined />} color="success">
+            Yakunlangan
+          </Tag>
+        ) : (
           <Tag icon={<ClockCircleOutlined />} color="processing">
             Mavjud
           </Tag>
-        );
-      },
+        )
+      ),
     },
     {
       title: 'Amallar',
       key: 'actions',
-      render: (record: any) => (
+      width: '15%',
+      align: 'center' as const,
+      render: (record: Test) => (
         <Space>
           {!record.submissionTime && (
-            <Button 
-              type="primary" 
-              onClick={() => navigate(`/test/${record.testAccessId}`)}
-              style={{
-                borderRadius: '6px',
-                background: 'linear-gradient(90deg, #1890ff 0%, #722ed1 100%)',
-                border: 'none'
-              }}
+            <Button
+              type="primary"
+              onClick={() => handleStartTest(record.testAccessId)}
+              className="rounded-md bg-gradient-to-r from-blue-500 to-purple-600 border-none hover:from-blue-600 hover:to-purple-700"
             >
-              Testni Boshlash
+              Testni boshlash
             </Button>
           )}
           {record.submissionTime && (
-            <Button 
-              onClick={() => navigate(`/student/results`)}
-              style={{ borderRadius: '6px' }}
+            <Button
+              onClick={handleViewResults}
+              className="rounded-md"
             >
-              Natijalarni Ko'rish
+              Natijalarni ko‘rish
             </Button>
           )}
         </Space>
@@ -102,37 +123,31 @@ const StudentTests: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Card 
-        style={{ 
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-        }}
-      >
-        <div style={{ marginBottom: 24 }}>
-          <Title level={3} style={{ margin: 0 }}>Mavjud Testlar</Title>
-          <Text type="secondary">Sizga tayinlangan testlar ro'yxati</Text>
+    <div className="p-6">
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Mavjud testlar</h2>
+          <p className="text-gray-500">Sizga biriktirilgan testlar ro‘yxati</p>
         </div>
+      </div>
 
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
         <Table
-          dataSource={tests}
           columns={columns}
+          dataSource={tests}
           rowKey="id"
           loading={loading}
+          bordered
           pagination={{
-            pageSize: 10,
             showSizeChanger: true,
-            showTotal: (total) => `Jami ${total} ta test`,
-            style: { marginTop: 16 }
-          }}
-          style={{ 
-            borderRadius: '8px',
-            overflow: 'hidden'
+            showTotal: (total, range) => `${range[0]}-${range[1]} dan ${total} ta`,
+            pageSizeOptions: ['10', '20', '50'],
+            defaultPageSize: 10,
           }}
         />
-      </Card>
+      </div>
     </div>
   );
 };
 
-export default StudentTests; 
+export default StudentTests;

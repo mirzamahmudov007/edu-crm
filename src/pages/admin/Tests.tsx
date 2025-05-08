@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Modal, Form, Input, Select, message, Card, Row, Col, Tabs, Tag, Statistic, Divider } from 'antd';
-import { EditOutlined, DeleteOutlined, EyeOutlined} from '@ant-design/icons';
+import { Table, Button, Space, Modal, Form, Input, Select, message, Tabs, Tag, Divider } from 'antd';
+import { EditOutlined, DeleteOutlined, EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import { getAllTests, createTest, deleteTest, TestFilters, getDetailedTestResult, getTeacherTests } from '../../services/tests.service';
 import { getAllGroups, Group } from '../../services/groups.service';
 import { getAllTeachers, Teacher } from '../../services/teachers.service';
@@ -91,7 +91,6 @@ const AdminTests: React.FC = () => {
       const a = document.createElement('a');
       a.href = url;
       
-      // Test nomini fayl nomi sifatida ishlatish
       const test = tests.find(t => t.id === testId);
       const fileName = test ? `test_${test.title.replace(/[^a-zA-Z0-9]/g, '_')}.docx` : `test_${testId}.docx`;
       
@@ -143,143 +142,14 @@ const AdminTests: React.FC = () => {
     }
   }, [selectedTest]);
 
-  const columns = [
-    {
-      title: 'Sarlavha',
-      dataIndex: 'title',
-      key: 'title',
-    },
-    {
-      title: 'Tavsif',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: 'Guruh',
-      dataIndex: ['group', 'name'],
-      key: 'group',
-    },
-    {
-      title: 'O\'qituvchi',
-      dataIndex: ['teacher', 'fullName'],
-      key: 'teacher',
-    },
-    {
-      title: 'Holat',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const colors = {
-          ACTIVE: 'green',
-          COMPLETED: 'blue',
-          UPCOMING: 'orange',
-        };
-        const statusText = {
-          ACTIVE: 'Faol',
-          COMPLETED: 'Yakunlangan',
-          UPCOMING: 'Kutilmoqda',
-        };
-        return <Tag color={colors[status as keyof typeof colors]}>{statusText[status as keyof typeof statusText]}</Tag>;
-      },
-    },
-    {
-      title: 'Boshlanish Vaqti',
-      dataIndex: 'startTime',
-      key: 'startTime',
-      render: (text: string) => dayjs(text).format('DD.MM.YYYY HH:mm'),
-    },
-    {
-      title: 'Tugash Vaqti',
-      dataIndex: 'endTime',
-      key: 'endTime',
-      render: (text: string) => dayjs(text).format('DD.MM.YYYY HH:mm'),
-    },
-    {
-      title: 'Savollar Soni',
-      dataIndex: 'totalQuestions',
-      key: 'totalQuestions',
-    },
-    {
-      title: 'Amallar',
-      key: 'actions',
-      render: (_: any, record: Test) => (
-        <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => handleView(record)}
-          />
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          />
-          <Button
-            icon={<DeleteOutlined />}
-            danger
-            onClick={() => handleDelete(record.id)}
-          />
-           <Button
-        type="primary"
-        onClick={() => exportTestToWord(record.id)}
-      >
-        Word
-      </Button>
-        </Space>
-      ),
-    },
-  ];
-
-  const resultColumns = [
-    {
-      title: 'Talaba',
-      dataIndex: ['student', 'fullName'],
-      key: 'student',
-    },
-    {
-      title: 'Ball',
-      dataIndex: 'score',
-      key: 'score',
-      render: (score: number, record: any) => {
-        const totalQuestions = record.totalQuestions || 0;
-        const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
-        return (
-          <div>
-            <div>{score} / {totalQuestions}</div>
-            <div style={{ color: percentage >= 70 ? 'green' : percentage >= 50 ? 'orange' : 'red' }}>
-              {percentage}%
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      title: 'Topshirilgan Vaqt',
-      dataIndex: 'submissionTime',
-      key: 'submissionTime',
-      render: (text: string) => text ? dayjs(text).format('DD.MM.YYYY HH:mm') : 'Topshirilmagan',
-    },
-    {
-      title: 'Holat',
-      key: 'status',
-      render: (_: any, record: any) => {
-        if (!record.submissionTime) {
-          return <Tag color="default">Boshlanmagan</Tag>;
-        }
-        return <Tag color="green">Yakunlangan</Tag>;
-      },
-    },
-    {
-      title: 'Amallar',
-      key: 'actions',
-      render: (_: any, record: any) => (
-        <Button
-          type="link"
-          onClick={() => handleViewResultDetails(record.id)}
-        >
-          Batafsil Ko'rish
-        </Button>
-      ),
-    },
-  ];
+  const getStatusTag = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return <Tag color="green">Faol</Tag>;
+      case 'COMPLETED': return <Tag color="blue">Yakunlangan</Tag>;
+      case 'UPCOMING': return <Tag color="orange">Kutilmoqda</Tag>;
+      default: return <Tag color="default">{status}</Tag>;
+    }
+  };
 
   const handleFilterChange = (key: keyof TestFilters, value: any) => {
     setFilters(prev => ({
@@ -288,7 +158,6 @@ const AdminTests: React.FC = () => {
     }));
   };
 
- 
   const handleEdit = (test: Test) => {
     setEditingTest(test);
     form.setFieldsValue({
@@ -327,13 +196,10 @@ const AdminTests: React.FC = () => {
 
   const handleViewResultDetails = async (resultId: number) => {
     try {
-      console.log('Fetching test result details for ID:', resultId);
       const data = await getDetailedTestResult(resultId);
-      console.log('Received test result data:', data);
       setSelectedResultData(data);
       setIsResultModalVisible(true);
     } catch (error: any) {
-      console.error('Error in handleViewResultDetails:', error);
       message.error('Natija tafsilotlarini olishda xatolik: ' + (error.message || 'Noma\'lum xatolik'));
     }
   };
@@ -371,8 +237,6 @@ const AdminTests: React.FC = () => {
     const startTime = dayjs(test.startTime);
     const endTime = dayjs(test.endTime);
     
-    console.log(startTime);
-    
     if (now.isBefore(startTime)) {
       return 'UPCOMING';
     } else if (now.isAfter(endTime)) {
@@ -382,74 +246,142 @@ const AdminTests: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return '#3f8600'; // yashil
-      case 'COMPLETED':
-        return '#1890ff'; // ko'k
-      case 'UPCOMING':
-        return '#faad14'; // to'q sariq
-      default:
-        return '#d9d9d9'; // kulrang
-    }
-  };
+  const columns = [
+    {
+      title: 'Sarlavha',
+      dataIndex: 'title',
+      key: 'title',
+      width: '15%',
+    },
+    {
+      title: 'Guruh',
+      dataIndex: ['group', 'name'],
+      key: 'group',
+      width: '10%',
+    },
+    {
+      title: 'O\'qituvchi',
+      dataIndex: ['teacher', 'fullName'],
+      key: 'teacher',
+      width: '10%',
+    },
+    {
+      title: 'Holat',
+      key: 'status',
+      width: '8%',
+      render: ( record: Test) => getStatusTag(getTestStatus(record)),
+    },
+    {
+      title: 'Savollar Soni',
+      dataIndex: 'totalQuestions',
+      key: 'totalQuestions',
+      width: '5%',
+      align: 'center' as const,
+    },
+    {
+      title: 'Amallar',
+      key: 'actions',
+      width: '20%',
+        align: 'center' as const,
+      render: (record: Test) => (
+        <Space>
+          <Button
+            type="text"
+            icon={<EyeOutlined />}
+            onClick={() => handleView(record)}
+          />
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          />
+          <Button
+            type="text"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.id)}
+            danger
+          />
+          <Button
+            type="link"
+            size="small"
+            onClick={() => exportTestToWord(record.id)}
+          >
+            Word
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
+  
   return (
-    <div>
-      <Card style={{ marginBottom: 16 }}>
-        {user.role === "TEACHER" ? <Row>
-          <Button onClick={()=> navigate("/tests/create")}>Test qoshish</Button>
-        </Row> : ""}
-        {user.role === "ADMIN" ? 
-        <Row gutter={16}>
-          <Col span={8}>
+    <div style={{ padding: '24px', backgroundColor: '#fff' }}>
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 className="text-2xl font-bold text-gray-800">Testlar</h2>
+        {user.role === "TEACHER" && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate("/tests/create")}
+          >
+            Test qo'shish
+          </Button>
+        )}
+      </div>
+
+      {user.role === "ADMIN" && (
+        <div style={{ marginBottom: '16px', padding: '16px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             <Select
-              style={{ width: '100%' }}
               placeholder="Guruh bo'yicha filtrlash"
               allowClear
               onChange={(value) => handleFilterChange('groupId', value)}
+              style={{ width: '100%' }}
             >
               {groups.map(group => (
                 <Option key={group.id} value={group.id}>{group.name}</Option>
               ))}
             </Select>
-          </Col>
-          <Col span={8}>
+            
             <Select
-              style={{ width: '100%' }}
               placeholder="O'qituvchi bo'yicha filtrlash"
               allowClear
               onChange={(value) => handleFilterChange('teacherId', value)}
+              style={{ width: '100%' }}
             >
               {teachers.map(teacher => (
                 <Option key={teacher.id} value={teacher.id}>{teacher.fullName}</Option>
               ))}
             </Select>
-          </Col>
-          <Col span={8}>
+            
             <Select
-              style={{ width: '100%' }}
               placeholder="Holat bo'yicha filtrlash"
               allowClear
               onChange={(value) => handleFilterChange('status', value)}
+              style={{ width: '100%' }}
             >
               <Option value="ACTIVE">Faol</Option>
               <Option value="COMPLETED">Yakunlangan</Option>
               <Option value="UPCOMING">Kutilmoqda</Option>
             </Select>
-          </Col>
-        </Row> : ""}
-      </Card>
+          </div>
+        </div>
+      )}
 
-     
-      <Table 
-        columns={columns} 
-        dataSource={tests} 
-        rowKey="id" 
+      <Table
+        columns={columns}
+        dataSource={tests}
+        rowKey="id"
         loading={loading}
+        bordered
+        pagination={{
+          showSizeChanger: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          defaultPageSize: 10,
+        }}
       />
-      
+
       <Modal
         title={editingTest ? 'Testni Tahrirlash' : 'Yangi Test Qo\'shish'}
         open={isModalVisible}
@@ -510,51 +442,96 @@ const AdminTests: React.FC = () => {
           <div>
             <Tabs defaultActiveKey="1">
               <TabPane tab="Test Ma'lumotlari" key="1">
-                <Card>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <h2>{selectedTest.title}</h2>
-                      <p>{selectedTest.description}</p>
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold">{selectedTest.title}</h2>
+                      <p className="text-gray-600">{selectedTest.description}</p>
                       <Divider />
-                      <p><strong>Guruh:</strong> {selectedTest.group?.name}</p>
-                      <p><strong>O'qituvchi:</strong> {selectedTest.group?.teacher?.fullName}</p>
-                      <p><strong>Savollar Soni:</strong> {selectedTest.questions?.length || 0}</p>
-                    </Col>
-                    <Col span={12}>
-                      <Row gutter={16}>
-                        <Col span={12}>
-                          <Statistic 
-                            title="Boshlanish Vaqti" 
-                            value={dayjs(selectedTest.startTime).format('DD.MM.YYYY HH:mm')} 
-                          />
-                        </Col>
-                        <Col span={12}>
-                          <Statistic 
-                            title="Tugash Vaqti" 
-                            value={dayjs(selectedTest.endTime).format('DD.MM.YYYY HH:mm')} 
-                          />
-                        </Col>
-                      </Row>
+                      <p><strong className="text-gray-700">Guruh:</strong> {selectedTest.group?.name}</p>
+                      <p><strong className="text-gray-700">O'qituvchi:</strong> {selectedTest.group?.teacher?.fullName}</p>
+                      <p><strong className="text-gray-700">Savollar Soni:</strong> {selectedTest.questions?.length || 0}</p>
+                    </div>
+                    <div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gray-50 p-4 rounded">
+                          <p className="text-sm font-medium text-gray-500">Boshlanish Vaqti</p>
+                          <p className="text-lg">{dayjs(selectedTest.startTime).format('DD.MM.YYYY HH:mm')}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded">
+                          <p className="text-sm font-medium text-gray-500">Tugash Vaqti</p>
+                          <p className="text-lg">{dayjs(selectedTest.endTime).format('DD.MM.YYYY HH:mm')}</p>
+                        </div>
+                      </div>
                       <Divider />
-                      <Row gutter={16}>
-                        <Col span={24}>
-                          <Statistic 
-                            title="Holat" 
-                            value={getTestStatus(selectedTest)}
-                            valueStyle={{ color: getStatusColor(getTestStatus(selectedTest)) }}
-                          />
-                        </Col>
-                      </Row>
-                    </Col>
-                  </Row>
-                </Card>
+                      <div className="bg-gray-50 p-4 rounded">
+                        <p className="text-sm font-medium text-gray-500">Holat</p>
+                        {getStatusTag(getTestStatus(selectedTest))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </TabPane>
               <TabPane tab="Test Natijalari" key="2">
                 <Table
-                  columns={resultColumns}
+                  columns={[
+                    {
+                      title: 'Talaba',
+                      dataIndex: ['student', 'fullName'],
+                      key: 'student',
+                    },
+                    {
+                      title: 'Ball',
+                      key: 'score',
+                      render: (_, record: any) => {
+                        const totalQuestions = record.totalQuestions || 0;
+                        const percentage = totalQuestions > 0 ? Math.round((record.score / totalQuestions) * 100) : 0;
+                        const percentageColor = percentage >= 70 ? 'green' : percentage >= 50 ? 'orange' : 'red';
+                        
+                        return (
+                          <div>
+                            <div>{record.score} / {totalQuestions}</div>
+                            <div style={{ color: percentageColor }}>
+                              {percentage}%
+                            </div>
+                          </div>
+                        );
+                      },
+                    },
+                    {
+                      title: 'Topshirilgan Vaqt',
+                      dataIndex: 'submissionTime',
+                      key: 'submissionTime',
+                      render: (submissionTime: string) => 
+                        submissionTime ? dayjs(submissionTime).format('DD.MM.YYYY HH:mm') : 'Topshirilmagan',
+                    },
+                    {
+                      title: 'Holat',
+                      key: 'status',
+                      render: (_, record: any) => 
+                        !record.submissionTime ? (
+                          <Tag color="default">Boshlanmagan</Tag>
+                        ) : (
+                          <Tag color="green">Yakunlangan</Tag>
+                        ),
+                    },
+                    {
+                      title: 'Amallar',
+                      key: 'actions',
+                      render: (_, record: any) => (
+                        <Button 
+                          type="link"
+                          onClick={() => handleViewResultDetails(record.id)}
+                        >
+                          Batafsil Ko'rish
+                        </Button>
+                      ),
+                    },
+                  ]}
                   dataSource={testResults}
                   rowKey="id"
                   loading={loadingResults}
+                  pagination={false}
                 />
               </TabPane>
             </Tabs>
@@ -578,108 +555,70 @@ const AdminTests: React.FC = () => {
       >
         {selectedResultData && (
           <div>
-            <Card>
-              <Row gutter={16}>
-                <Col span={24}>
-                  <h2>{selectedResultData.testResult.test.title}</h2>
-                  <p>{selectedResultData.testResult.test.description}</p>
+            <div className="bg-white rounded-lg shadow p-4 mb-4">
+              <div className="grid grid-cols-1">
+                <div>
+                  <h2 className="text-xl font-bold">{selectedResultData.testResult.test.title}</h2>
+                  <p className="text-gray-600">{selectedResultData.testResult.test.description}</p>
                   <Divider />
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Statistic
-                    title="Jami Ball"
-                    value={`${selectedResultData.testResult.score}/${selectedResultData.testResult.totalQuestions}`}
-                    valueStyle={{ color: selectedResultData.testResult.score === selectedResultData.testResult.totalQuestions ? '#3f8600' : '#cf1322' }}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic
-                    title="Foiz"
-                    value={Math.round((selectedResultData.testResult.score / selectedResultData.testResult.totalQuestions) * 100)}
-                    suffix="%"
-                    valueStyle={{ 
-                      color: Math.round((selectedResultData.testResult.score / selectedResultData.testResult.totalQuestions) * 100) >= 70 
-                        ? '#3f8600' 
-                        : '#cf1322' 
-                    }}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic
-                    title="Topshirilgan Vaqt"
-                    value={selectedResultData.testResult.submissionTime ? dayjs(selectedResultData.testResult.submissionTime).format('DD.MM.YYYY HH:mm') : 'Topshirilmagan'}
-                  />
-                </Col>
-              </Row>
-            </Card>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50 p-4 rounded">
+                  <p className="text-sm font-medium text-gray-500">Jami Ball</p>
+                  <p className={`text-lg ${selectedResultData.testResult.score === selectedResultData.testResult.totalQuestions ? 'text-green-600' : 'text-red-600'}`}>
+                    {selectedResultData.testResult.score}/{selectedResultData.testResult.totalQuestions}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded">
+                  <p className="text-sm font-medium text-gray-500">Foiz</p>
+                  <p className={`text-lg ${Math.round((selectedResultData.testResult.score / selectedResultData.testResult.totalQuestions) * 100) >= 70 ? 'text-green-600' : 'text-red-600'}`}>
+                    {Math.round((selectedResultData.testResult.score / selectedResultData.testResult.totalQuestions) * 100)}%
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded">
+                  <p className="text-sm font-medium text-gray-500">Topshirilgan Vaqt</p>
+                  <p className="text-lg">
+                    {selectedResultData.testResult.submissionTime ? dayjs(selectedResultData.testResult.submissionTime).format('DD.MM.YYYY HH:mm') : 'Topshirilmagan'}
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <Divider orientation="left">Savollar Tafsilotlari</Divider>
 
             {selectedResultData.questionResults.map((result: any, index: number) => (
-              <Card 
+              <div 
                 key={result.questionId} 
-                style={{ 
-                  marginBottom: 16,
-                  borderLeft: `4px solid ${result.isCorrect ? '#52c41a' : '#ff4d4f'}`,
-                }}
-                className={result.isCorrect ? 'correct-answer' : 'incorrect-answer'}
+                className={`mb-4 p-4 rounded-lg border-l-4 ${result.isCorrect ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}
               >
-                <Row gutter={[16, 16]}>
-                  <Col span={24}>
-                    <Space size="middle" style={{ width: '100%', justifyContent: 'space-between' }}>
-                      <h3 style={{ margin: 0 }}>Savol {index + 1}</h3>
-                      <Tag color={result.isCorrect ? 'success' : 'error'}>
-                        {result.isCorrect ? 'To\'g\'ri' : 'Noto\'g\'ri'}
-                      </Tag>
-                    </Space>
-                  </Col>
-                  <Col span={24}>
-                    <div style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '4px' }}>
-                      <p style={{ margin: 0, fontWeight: 'bold' }}>{result.questionText}</p>
-                    </div>
-                  </Col>
-                  <Col span={12}>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Savol {index + 1}</h3>
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${result.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {result.isCorrect ? 'To\'g\'ri' : 'Noto\'g\'ri'}
+                    </span>
+                  </div>
+                  <div className="bg-gray-100 p-3 rounded">
+                    <p className="font-medium">{result.questionText}</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p style={{ fontWeight: 'bold', color: '#666' }}>Talaba Javobi:</p>
-                      <div style={{ 
-                        padding: '8px', 
-                        backgroundColor: result.isCorrect ? '#f6ffed' : '#fff2f0',
-                        border: `1px solid ${result.isCorrect ? '#b7eb8f' : '#ffccc7'}`,
-                        borderRadius: '4px'
-                      }}>
+                      <p className="text-sm font-medium text-gray-600">Talaba Javobi:</p>
+                      <div className={`p-2 rounded ${result.isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
                         {result.studentAnswer || 'Javob berilmagan'}
                       </div>
                     </div>
-                  </Col>
-                  <Col span={12}>
                     <div>
-                      <p style={{ fontWeight: 'bold', color: '#666' }}>To'g'ri Javob:</p>
-                      <div style={{ 
-                        padding: '8px', 
-                        backgroundColor: '#f6ffed',
-                        border: '1px solid #b7eb8f',
-                        borderRadius: '4px'
-                      }}>
+                      <p className="text-sm font-medium text-gray-600">To'g'ri Javob:</p>
+                      <div className="bg-green-50 p-2 rounded border border-green-200">
                         {result.correctAnswer}
                       </div>
                     </div>
-                  </Col>
-                </Row>
-              </Card>
+                  </div>
+                </div>
+              </div>
             ))}
-
-            <style>
-              {`
-                .correct-answer {
-                  background-color: #f6ffed;
-                }
-                .incorrect-answer {
-                  background-color: '#fff2f0';
-                }
-              `}
-            </style>
           </div>
         )}
       </Modal>
@@ -687,4 +626,4 @@ const AdminTests: React.FC = () => {
   );
 };
 
-export default AdminTests; 
+export default AdminTests;

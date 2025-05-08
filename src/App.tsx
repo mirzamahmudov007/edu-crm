@@ -23,6 +23,8 @@ import AdminGroups from './pages/admin/Groups';
 import AdminTests from './pages/admin/Tests';
 import { PrivateRoute } from './components/PrivateRoute';
 
+import './index.css'
+import Dashboard from './pages/admin/Dashboard';
 // Error Boundary Component
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -81,6 +83,7 @@ const App: React.FC = () => {
               }
             >
               <Route index element={<Navigate to="users" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="groups" element={<AdminGroups />} />
               <Route path="tests" element={<AdminTests />} />
@@ -95,7 +98,7 @@ const App: React.FC = () => {
                   {user?.role === 'ADMIN' ? (
                     <Navigate to="/admin/users" replace />
                   ) : (
-                    <MainLayout />
+                    <MainLayout />                                                                     
                   )}
                 </PrivateRoute>
               }

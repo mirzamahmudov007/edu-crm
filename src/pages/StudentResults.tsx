@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Typography, Tag, Space, Button, message, Empty } from 'antd';
+import { Table, Typography, Tag, Space, Button, message, Empty } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { getStudentResults } from '../services/tests.service';
 import dayjs from 'dayjs';
 import { TestResult } from '../types';
 
-const { Title, Text } = Typography;
+
+const { Text } = Typography;
 
 const StudentResults: React.FC = () => {
   const [results, setResults] = useState<TestResult[]>([]);
@@ -38,9 +39,9 @@ const StudentResults: React.FC = () => {
 
   const getScoreText = (score: number, totalQuestions: number): string => {
     const percentage = (score / totalQuestions) * 100;
-    if (percentage >= 80) return 'A\'lo';
+    if (percentage >= 80) return "A'lo";
     if (percentage >= 60) return 'Yaxshi';
-    return 'Yaxshilash Kerak';
+    return 'Yaxshilash kerak';
   };
 
   const columns = [
@@ -97,47 +98,47 @@ const StudentResults: React.FC = () => {
         const totalQuestions = record.test.questions.length;
         const color = getScoreColor(record.score, totalQuestions);
         const text = getScoreText(record.score, totalQuestions);
-
-        return (
-          <Tag color={color}>
-            {text}
-          </Tag>
-        );
+        return <Tag color={color}>{text}</Tag>;
       },
     },
     {
       title: 'Amallar',
       key: 'actions',
+      width: '15%',
+      align: 'center' as const,
       render: (record: TestResult) => (
-        <Space>
-          <Button 
-            type="primary" 
-            onClick={() => navigate(`/student/results/${record.id}`)}
-          >
-            Batafsil Ko'rish
-          </Button>
-        </Space>
+        <Button
+          type="primary"
+          onClick={() => navigate(`/student/results/${record.id}`)}
+          className="rounded-md bg-gradient-to-r from-blue-500 to-purple-600 border-none hover:from-blue-600 hover:to-purple-700"
+        >
+          Batafsil ko‘rish
+        </Button>
       ),
     },
   ];
 
   return (
-    <div>
-      <Card>
-        <Title level={2}>Mening Test Natijalarim</Title>
-        <Text>Bu yerda siz o'z test natijalaringiz va ballaringizni ko'rishingiz mumkin.</Text>
-      </Card>
+    <div className="p-6">
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Mening Test Natijalarim</h2>
+          <p className="text-gray-500">Bu yerda siz o‘z test natijalaringizni ko‘rishingiz mumkin</p>
+        </div>
+      </div>
 
-      <Card style={{ marginTop: 16 }}>
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
         <Table
           dataSource={results}
           columns={columns}
           rowKey="id"
           loading={loading}
-          pagination={{ 
+          bordered
+          pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showTotal: (total) => `Jami ${total} ta natija`
+            showTotal: (total) => `Jami ${total} ta natija`,
+            pageSizeOptions: ['10', '20', '50'],
           }}
           locale={{
             emptyText: (
@@ -148,9 +149,9 @@ const StudentResults: React.FC = () => {
             )
           }}
         />
-      </Card>
+      </div>
     </div>
   );
 };
 
-export default StudentResults; 
+export default StudentResults;

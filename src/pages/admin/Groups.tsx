@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Modal, Form, Input, message, Select, Tabs } from 'antd';
-import {  PlusOutlined, UserAddOutlined, EyeOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Modal, Form, Input, message, Select, Tabs, Tag } from 'antd';
+import { PlusOutlined} from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchAllGroups, createGroup, addStudentToGroup } from '../../store/groupsSlice';
 import { Group } from '../../store/groupsSlice';
 import { usersService } from '../../services/users.service';
+import { EyeOutlined, UserAddOutlined } from '@ant-design/icons';
+
 
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -76,7 +78,6 @@ const Groups: React.FC = () => {
   const handleCreateAndAddStudent = async (values: any) => {
     if (!selectedGroup) return;
     try {
-      // First create the student
       const createResponse = await usersService.createUser({
         username: values.username,
         password: values.password,
@@ -85,7 +86,6 @@ const Groups: React.FC = () => {
       });
 
       if (createResponse) {
-        // Then add them to the group
         await dispatch(addStudentToGroup({
           groupId: selectedGroup.id,
           username: values.username
@@ -110,17 +110,31 @@ const Groups: React.FC = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
+      width: '25%',
     },
     {
-      title: 'Teacher',
+      title: 'Mentor',
       dataIndex: ['teacher', 'fullName'],
       key: 'teacher',
+      width: '15%',
     },
     {
-      title: 'Students',
+      title: 'Members',
       dataIndex: 'students',
       key: 'students',
-      render: (students: any[]) => students?.length,
+      render: (students: any[]) => students?.length || 0,
+      width: '10%',
+      align: 'center' as const,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: () => (
+        <Tag color="green">Active</Tag> 
+      ),
+      width: '10%',
+      align: 'center' as const,
     },
     {
       title: 'Actions',
@@ -128,23 +142,24 @@ const Groups: React.FC = () => {
       render: (_: any, record: Group) => (
         <Space>
           <Button
+            type="text"
             icon={<EyeOutlined />}
             onClick={() => handleShowStudents(record)}
           >
-            Show Students
           </Button>
           <Button
-            type="primary"
+          type='text'
             icon={<UserAddOutlined />}
             onClick={() => {
               setSelectedGroup(record);
               setIsAddStudentModalVisible(true);
             }}
           >
-            Add Student
           </Button>
         </Space>
       ),
+      width: '10%',
+      align: 'center' as const,
     },
   ];
 
@@ -162,8 +177,9 @@ const Groups: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '16px' }}>
+    <div style={{ padding: '24px', backgroundColor: '#fff' }}>
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <h2 className="text-2xl font-bold text-gray-800">Gruhlar</h2>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -178,6 +194,13 @@ const Groups: React.FC = () => {
         dataSource={groups}
         rowKey="id"
         loading={status === 'loading'}
+        bordered
+        pagination={{
+          showSizeChanger: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          defaultPageSize: 10,
+        }}
       />
 
       <Modal
@@ -285,7 +308,7 @@ const Groups: React.FC = () => {
       >
         <Table
           columns={studentColumns}
-          dataSource={selectedGroup?.students}
+          dataSource={selectedGroup?.students}  
           rowKey="id"
           pagination={false}
         />
@@ -294,4 +317,4 @@ const Groups: React.FC = () => {
   );
 };
 
-export default Groups; 
+export default Groups;

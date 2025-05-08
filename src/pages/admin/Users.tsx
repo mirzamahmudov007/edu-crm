@@ -23,30 +23,46 @@ const Users: React.FC = () => {
       title: 'Username',
       dataIndex: 'username',
       key: 'username',
+      width: '25%',
     },
     {
       title: 'Full Name',
       dataIndex: 'fullName',
       key: 'fullName',
+      width: '35%',
     },
     {
       title: 'Role',
       dataIndex: 'role',
       key: 'role',
+      width: '20%',
+      render: (role: string) => (
+        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+          role === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
+          role === 'TEACHER' ? 'bg-blue-100 text-blue-800' :
+          'bg-green-100 text-green-800'
+        }`}>
+          {role}
+        </span>
+      ),
     },
     {
       title: 'Actions',
       key: 'actions',
+      width: '20%',
+      align: 'center' as const,
       render: (_: any, record: any) => (
         <Space>
           <Button
+            type="text"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           />
           <Button
+            type="text"
             icon={<DeleteOutlined />}
-            danger
             onClick={() => handleDelete(record.id)}
+            danger
           />
         </Space>
       ),
@@ -89,14 +105,12 @@ const Users: React.FC = () => {
       const values = await form.validateFields();
       
       if (editingUser) {
-        // For update, we need to include the ID
         await dispatch(updateUser({ 
           id: editingUser.id, 
           userData: values 
         })).unwrap();
         message.success('User updated successfully');
       } else {
-        // For create, we need to include a password
         if (!values.password) {
           message.error('Password is required for new users');
           return;
@@ -111,32 +125,49 @@ const Users: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+    <div className="p-6 bg-white">
+      <div className="mb-6 flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Foydalanuvchilar</h2>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={handleAdd}
+          className="bg-blue-600"
+        >
           Add User
         </Button>
       </div>
-      <Table 
-        columns={columns} 
-        dataSource={users} 
-        rowKey="id" 
-        loading={status === 'loading'}
-      />
+
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <Table
+          columns={columns}
+          dataSource={users}
+          rowKey="id"
+          loading={status === 'loading'}
+          bordered
+          pagination={{
+            showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            defaultPageSize: 10,
+          }}
+        />
+      </div>
       
       <Modal
         title={editingUser ? 'Edit User' : 'Add User'}
         open={isModalVisible}
         onOk={handleModalOk}
         onCancel={() => setIsModalVisible(false)}
+        width={600}
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" className="pt-4">
           <Form.Item
             name="username"
             label="Username"
             rules={[{ required: true, message: 'Please input username!' }]}
           >
-            <Input />
+            <Input className="rounded-md" />
           </Form.Item>
           {!editingUser && (
             <Form.Item
@@ -144,7 +175,7 @@ const Users: React.FC = () => {
               label="Password"
               rules={[{ required: true, message: 'Please input password!' }]}
             >
-              <Input.Password />
+              <Input.Password className="rounded-md" />
             </Form.Item>
           )}
           <Form.Item
@@ -152,14 +183,14 @@ const Users: React.FC = () => {
             label="Full Name"
             rules={[{ required: true, message: 'Please input full name!' }]}
           >
-            <Input />
+            <Input className="rounded-md" />
           </Form.Item>
           <Form.Item
             name="role"
             label="Role"
             rules={[{ required: true, message: 'Please select role!' }]}
           >
-            <Select>
+            <Select className="rounded-md">
               <Option value="ADMIN">Admin</Option>
               <Option value="TEACHER">Teacher</Option>
               <Option value="STUDENT">Student</Option>
@@ -171,4 +202,4 @@ const Users: React.FC = () => {
   );
 };
 
-export default Users; 
+export default Users;
