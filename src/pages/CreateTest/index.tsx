@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Select, DatePicker, notification, Card, Space, Steps, Typography, Radio } from 'antd';
-import { PlusOutlined, DeleteOutlined, SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchTeacherGroups } from '../../store/groupsSlice';
-import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { testsService } from '../../services/tests.service';
-
-const { Option } = Select;
-const { RangePicker } = DatePicker;
-const { TextArea } = Input;
-const { Title, Text, Paragraph } = Typography;
+import { ArrowLeftIcon, PlusIcon, TrashIcon, CheckIcon } from 'lucide-react';
 
 interface Question {
   text: string;
@@ -23,7 +16,6 @@ const CreateTest: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { groups } = useSelector((state: RootState) => state.groups);
-  const [form] = Form.useForm();
   const [questions, setQuestions] = useState<Question[]>([{
     text: '',
     options: ['', '', '', ''],
@@ -32,6 +24,13 @@ const CreateTest: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [createdTestId, setCreatedTestId] = useState<number | null>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    groupId: '',
+    startTime: '',
+    endTime: ''
+  });
 
   useEffect(() => {
     dispatch(fetchTeacherGroups());
@@ -41,69 +40,43 @@ const CreateTest: React.FC = () => {
     const errors: string[] = [];
     questions.forEach((question, index) => {
       if (!question.text.trim()) {
-        errors.push(`Savol ${index + 1}: Savol matni kiritilmagan`);
+        errors.push(`Question ${index + 1}: Question text is required`);
       }
       const validOptions = question.options.filter(opt => opt.trim());
       if (validOptions.length < 2) {
-        errors.push(`Savol ${index + 1}: Kamida 2 ta variant kiritish kerak`);
+        errors.push(`Question ${index + 1}: At least 2 options are required`);
       }
       if (!validOptions.includes(question.correctAnswer)) {
-        errors.push(`Savol ${index + 1}: To'g'ri javob variantlar qatorida bo'lishi kerak`);
+        errors.push(`Question ${index + 1}: Correct answer must be one of the options`);
       }
     });
     return errors;
   };
 
-  const handleCreateTest = async (values: any) => {
+  const handleCreateTest = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
       setLoading(true);
-      const [startTime, endTime] = values.testTime;
       
-      if (!startTime || !endTime) {
-        notification.error({
-          message: 'Xatolik',
-          description: 'Iltimos, test vaqtini to\'g\'ri tanlang',
-        });
-        return;
-      }
-
-      // Validate group
-      const selectedGroup = groups.find((g : any) => g.id === values.groupId);
-      if (!selectedGroup) {
-        notification.error({
-          message: 'Xatolik',
-          description: 'Iltimos, guruhni to\'g\'ri tanlang',
-        });
-        return;
-      }
-
       const testData = {
-        title: values.title.trim(),
-        description: values.description.trim(),
-        groupId: Number(values.groupId),
-        startTime: startTime.format('YYYY-MM-DDTHH:mm:ss'),
-        endTime: endTime.format('YYYY-MM-DDTHH:mm:ss')
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        groupId: Number(formData.groupId),
+        startTime: formData.startTime,
+        endTime: formData.endTime
       };
 
-      // Create test
       const response = await testsService.createTest(testData);
       
       if (!response || !response.id) {
-        throw new Error('Test yaratishda xatolik');
+        throw new Error('Failed to create test');
       }
 
       setCreatedTestId(response.id);
-      notification.success({
-        message: 'Muvaffaqiyatli',
-        description: 'Test muvaffaqiyatli yaratildi. Endi savollarni qo\'shishingiz mumkin.',
-      });
       setCurrentStep(1);
     } catch (error: any) {
-      console.error('Test yaratishda xatolik:', error);
-      notification.error({
-        message: 'Xatolik',
-        description: error.response?.data || 'Test yaratishda xatolik. Iltimos, qayta urinib ko\'ring.',
-      });
+      console.error('Error creating test:', error);
+      alert(error.message || 'Failed to create test');
     } finally {
       setLoading(false);
     }
@@ -112,25 +85,13 @@ const CreateTest: React.FC = () => {
   const handleAddQuestions = async () => {
     try {
       if (!createdTestId) {
-        notification.error({
-          message: 'Xatolik',
-          description: 'Test identifikatori topilmadi. Iltimos, avval test yarating.',
-        });
+        alert('Test ID not found. Please create test first.');
         return;
       }
 
       const questionErrors = validateQuestions();
       if (questionErrors.length > 0) {
-        notification.error({
-          message: 'Xatolik',
-          description: (
-            <ul>
-              {questionErrors.map((error, index) => (
-                <li key={index}>{error}</li>
-              ))}
-            </ul>
-          ),
-        });
+        alert(questionErrors.join('\n'));
         return;
       }
 
@@ -149,17 +110,11 @@ const CreateTest: React.FC = () => {
         });
       }
 
-      notification.success({
-        message: 'Muvaffaqiyatli',
-        description: 'Savollar muvaffaqiyatli qo\'shildi',
-      });
+      alert('Questions added successfully');
       navigate('/tests');
     } catch (error: any) {
-      console.error('Savollarni qo\'shishda xatolik:', error);
-      notification.error({
-        message: 'Xatolik',
-        description: error.response?.data || 'Savollarni qo\'shishda xatolik. Iltimos, qayta urinib ko\'ring.',
-      });
+      console.error('Error adding questions:', error);
+      alert(error.message || 'Failed to add questions');
     } finally {
       setLoading(false);
     }
@@ -178,11 +133,6 @@ const CreateTest: React.FC = () => {
       const newQuestions = [...questions];
       newQuestions.splice(index, 1);
       setQuestions(newQuestions);
-    } else {
-      notification.warning({
-        message: 'Ogohlantirish',
-        description: 'Kamida bitta savol bo\'lishi kerak',
-      });
     }
   };
 
@@ -201,184 +151,228 @@ const CreateTest: React.FC = () => {
     setQuestions(newQuestions);
   };
 
-  const steps = [
-    {
-      title: 'Test Ma\'lumotlari',
-      content: (
-        <Card style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleCreateTest}
-            requiredMark={false}
-          >
-            <Form.Item
-              name="title"
-              label="Test Nomi"
-              rules={[{ required: true, message: 'Iltimos, test nomini kiriting' }]}
-            >
-              <Input placeholder="Test nomini kiriting" />
-            </Form.Item>
-
-            <Form.Item
-              name="description"
-              label="Test Tavsifi"
-              rules={[{ required: true, message: 'Iltimos, test tavsifini kiriting' }]}
-            >
-              <TextArea rows={4} placeholder="Test haqida qisqacha ma'lumot" />
-            </Form.Item>
-
-            <Form.Item
-              name="groupId"
-              label="Guruh"
-              rules={[{ required: true, message: 'Iltimos, guruhni tanlang' }]}
-            >
-              <Select placeholder="Guruhni tanlang">
-                {groups.map((group:any) => (
-                  <Option key={group.id} value={group.id}>{group.name}</Option>
-                ))}
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="testTime"
-              label="Test Vaqti"
-              rules={[{ required: true, message: 'Iltimos, test vaqtini tanlang' }]}
-            >
-              <RangePicker
-                showTime
-                format="YYYY-MM-DD HH:mm"
-                style={{ width: '100%' }}
-                disabledDate={(current) => current && current < dayjs().startOf('day')}
-              />
-            </Form.Item>
-
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                icon={<SaveOutlined />}
-                style={{
-                  height: '45px',
-                  padding: '0 32px',
-                  borderRadius: '6px',
-                  fontSize: '16px',
-                  background: 'linear-gradient(90deg, #1890ff 0%, #722ed1 100%)',
-                  border: 'none'
-                }}
-              >
-                Testni Yaratish
-              </Button>
-            </Form.Item>
-          </Form>
-        </Card>
-      ),
-    },
-    {
-      title: 'Savollar',
-      content: (
-        <Card style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            {questions.map((question, qIndex) => (
-              <Card 
-                key={qIndex}
-                style={{ 
-                  borderRadius: '12px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                }}
-                title={
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text strong>Savol {qIndex + 1}</Text>
-                    <Button
-                      type="text"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={() => removeQuestion(qIndex)}
-                    />
-                  </div>
-                }
-              >
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <Input
-                    placeholder="Savol matnini kiriting"
-                    value={question.text}
-                    onChange={(e) => updateQuestion(qIndex, 'text', e.target.value)}
-                  />
-                  <Text strong>Variantlar:</Text>
-                  {question.options.map((option, oIndex) => (
-                    <Input
-                      key={oIndex}
-                      placeholder={`Variant ${oIndex + 1}`}
-                      value={option}
-                      onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
-                      suffix={
-                        <Radio
-                          checked={question.correctAnswer === option}
-                          onChange={() => updateQuestion(qIndex, 'correctAnswer', option)}
-                        />
-                      }
-                    />
-                  ))}
-                </Space>
-              </Card>
-            ))}
-            <Button
-              type="dashed"
-              onClick={addQuestion}
-              icon={<PlusOutlined />}
-              style={{ width: '100%', height: '45px', borderRadius: '6px' }}
-            >
-              Yangi Savol Qo'shish
-            </Button>
-            <Button
-              type="primary"
-              onClick={handleAddQuestions}
-              loading={loading}
-              icon={<SaveOutlined />}
-              style={{
-                height: '45px',
-                padding: '0 32px',
-                borderRadius: '6px',
-                fontSize: '16px',
-                background: 'linear-gradient(90deg, #1890ff 0%, #722ed1 100%)',
-                border: 'none'
-              }}
-            >
-              Savollarni Saqlash
-            </Button>
-          </Space>
-        </Card>
-      ),
-    },
-  ];
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   return (
-    <div style={{ padding: '24px', maxWidth: 800, margin: '0 auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <Button 
-          icon={<ArrowLeftOutlined />} 
+    <div className="min-h-screen bg-gradient-to-br py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <button
           onClick={() => navigate('/tests')}
-          style={{ marginBottom: 16 }}
+          className="mb-8 flex items-center text-white hover:text-purple-200 transition-colors"
         >
-          Testlarga Qaytish
-        </Button>
-        <Title level={2}>Yangi Test Yaratish</Title>
-        <Paragraph>
-          Bu yerda siz yangi test yaratishingiz va unga savollar qo'shishingiz mumkin.
-          Test yaratish uchun test ma'lumotlarini kiriting va keyin savollarni qo'shing.
-        </Paragraph>
+          <ArrowLeftIcon className="w-5 h-5 mr-2" />
+          Back to Tests
+        </button>
+
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          {/* Progress Steps */}
+          <div className="flex border-b">
+            <button
+              className={`flex-1 py-4 px-6 text-center ${
+                currentStep === 0
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-gray-50 text-gray-500'
+              }`}
+            >
+              1. Test Details
+            </button>
+            <button
+              className={`flex-1 py-4 px-6 text-center ${
+                currentStep === 1
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-gray-50 text-gray-500'
+              }`}
+            >
+              2. Questions
+            </button>
+          </div>
+
+          <div className="p-8">
+            {currentStep === 0 ? (
+              <form onSubmit={handleCreateTest} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Test Title
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Enter test title"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Enter test description"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Group
+                  </label>
+                  <select
+                    name="groupId"
+                    value={formData.groupId}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select a group</option>
+                    {groups.map((group: any) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="startTime"
+                      value={formData.startTime}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      End Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="endTime"
+                      value={formData.endTime}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? 'Creating...' : 'Create Test'}
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-8">
+                {questions.map((question, qIndex) => (
+                  <div
+                    key={qIndex}
+                    className="bg-gray-50 rounded-xl p-6 space-y-4 relative"
+                  >
+                    <button
+                      onClick={() => removeQuestion(qIndex)}
+                      className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Question {qIndex + 1}
+                      </label>
+                      <textarea
+                    value={question.text}
+                    onChange={(e) => updateQuestion(qIndex, 'text', e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Enter your question"
+                    required
+                  />
+                      {/* <input
+                        type="text"
+                        value={question.text}
+                        onChange={(e) => updateQuestion(qIndex, 'text', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Enter your question"
+                      /> */}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {question.options.map((option, oIndex) => (
+                        <div key={oIndex} className="relative">
+                          <input
+                            type="text"
+                            value={option}
+                            onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
+                            className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                              question.correctAnswer === option
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-gray-300'
+                            }`}
+                            placeholder={`Option ${oIndex + 1}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateQuestion(qIndex, 'correctAnswer', option)}
+                            className={`absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center ${
+                              question.correctAnswer === option
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-200 text-gray-500'
+                            }`}
+                          >
+                            <CheckIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={addQuestion}
+                    className="flex-1 py-3 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-500 hover:text-purple-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                  >
+                    <PlusIcon className="w-5 h-5 mx-auto" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddQuestions}
+                    disabled={loading}
+                    className="flex-1 py-3 px-4 border border-transparent rounded-lg shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {loading ? 'Saving...' : 'Save Questions'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-
-      <Steps
-        current={currentStep}
-        items={steps.map(item => ({ title: item.title }))}
-        style={{ marginBottom: 24 }}
-      />
-
-      {steps[currentStep].content}
     </div>
   );
 };
 
-export default CreateTest; 
+export default CreateTest;

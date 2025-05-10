@@ -69,7 +69,7 @@ const AdminLayout: React.FC = () => {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider 
-        width={200} 
+        width={250} 
         style={{ 
           background: 'white',
           boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
@@ -116,7 +116,7 @@ const AdminLayout: React.FC = () => {
           }}
         />
       </Sider>
-      <Layout style={{ marginLeft: 200 }}>
+      <Layout style={{ marginLeft: 250 }}>
         <Header style={{ 
           display: 'flex', 
           alignItems: 'center', 

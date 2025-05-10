@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Radio, Button, Typography, Space, Progress, message, List, Tag, Divider, Alert } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getTestByAccessId, getTestQuestions, submitTest } from '../services/tests.service';
-import { CheckCircleOutlined, CloseCircleOutlined, ArrowLeftOutlined, CheckOutlined } from '@ant-design/icons';
-import TestProgress from '../components/TestProgress';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const { Title, Text, Paragraph } = Typography;
+import { CheckCircle, XCircle, ArrowLeft, Check, Clock, AlertTriangle } from 'lucide-react';
 
 interface QuestionResult {
   questionId: number;
@@ -31,6 +27,41 @@ interface TestSubmissionResponse {
   questionResults: QuestionResult[];
 }
 
+const TestProgress: React.FC<{
+  currentQuestion: number;
+  totalQuestions: number;
+  remainingTime: number;
+  onTimeUp: () => void;
+  isCorrect: boolean;
+}> = ({ currentQuestion, totalQuestions, remainingTime }) => {
+  const minutes = Math.floor(remainingTime / 60);
+  const seconds = remainingTime % 60;
+
+  return (
+    <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-purple-600">
+            Savol {currentQuestion}/{totalQuestions}
+          </span>
+          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-600" 
+              style={{ width: `${(currentQuestion / totalQuestions) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-orange-500" />
+          <span className={`font-mono font-bold ${remainingTime < 60 ? 'text-red-500 animate-pulse' : 'text-gray-700'}`}>
+            {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Test: React.FC = () => {
   const { testAccessId } = useParams<{ testAccessId: string }>();
   const navigate = useNavigate();
@@ -42,8 +73,8 @@ const Test: React.FC = () => {
   const [testResults, setTestResults] = useState<TestSubmissionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [remainingTime, setRemainingTime] = useState<number>(0);
-  const [isCorrect, _] = useState<boolean>(false);
-  const [currentQuestionIndex, ___] = useState<number>(0);
+  const [isCorrect, __] = useState<boolean>(false);
+  const [currentQuestionIndex, _] = useState<number>(0);
 
   useEffect(() => {
     if (testAccessId && testAccessId !== 'undefined') {
@@ -54,7 +85,6 @@ const Test: React.FC = () => {
     }
   }, [testAccessId]);
 
-  // Debug useEffect to log test and questions data
   useEffect(() => {
     console.log('Test data:', test);
     console.log('Questions data:', questions);
@@ -62,15 +92,13 @@ const Test: React.FC = () => {
 
   useEffect(() => {
     if (test) {
-      // Convert minutes to seconds
       setRemainingTime(test.duration * 60);
     }
   }, [test]);
 
   useEffect(() => {
     if (remainingTime <= 0) {
-      // Instead of automatically submitting, just show a message
-      message.warning('Test vaqti tugadi!');
+      showToast('Test vaqti tugadi!', 'warning');
       return;
     }
 
@@ -81,12 +109,26 @@ const Test: React.FC = () => {
     return () => clearInterval(timer);
   }, [remainingTime]);
 
+  const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
+    // Simple toast implementation - in a real app, you'd use a proper toast library
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+      type === 'success' ? 'bg-green-500' : 
+      type === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+    } text-white`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+      setTimeout(() => document.body.removeChild(toast), 500);
+    }, 3000);
+  };
+
   const fetchTest = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // First get the test details
       const testResponse = await getTestByAccessId(testAccessId!);
       
       if (!testResponse) {
@@ -95,7 +137,6 @@ const Test: React.FC = () => {
       
       setTest(testResponse);
       
-      // Then get the questions for this test
       if (testResponse && testResponse.id) {
         const questionsResponse = await getTestQuestions(testResponse.id);
         console.log('Questions from API:', questionsResponse);
@@ -106,10 +147,7 @@ const Test: React.FC = () => {
     } catch (error: any) {
       console.error('Testni olishda xatolik:', error);
       
-      // More detailed error handling
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         if (error.response.status === 403) {
           setError('Sizga bu testni ko\'rish uchun ruxsat yo\'q. Iltimos, o\'qituvchingiz bilan bog\'laning.');
         } else if (error.response.status === 404) {
@@ -118,14 +156,12 @@ const Test: React.FC = () => {
           setError(`Server xatosi: ${error.response.status}. ${error.response.data?.message || 'Ma\'lumot yo\'q'}`);
         }
       } else if (error.request) {
-        // The request was made but no response was received
         setError('Server bilan bog\'lanishda xatolik. Iltimos, internet aloqangizni tekshiring.');
       } else {
-        // Something happened in setting up the request that triggered an Error
         setError(`Xatolik: ${error.message}`);
       }
       
-      message.error('Testni olishda xatolik');
+      showToast('Testni olishda xatolik', 'error');
     } finally {
       setLoading(false);
     }
@@ -143,19 +179,16 @@ const Test: React.FC = () => {
       setSubmitting(true);
       setError(null);
       
-      // Log the answers for debugging
       console.log('Submitting answers:', answers);
       
       const response = await submitTest(testAccessId!, answers);
       
-      // Set the test results to display immediately
       setTestResults(response);
       
-      message.success('Test muvaffaqiyatli topshirildi');
+      showToast('Test muvaffaqiyatli topshirildi', 'success');
     } catch (error: any) {
       console.error('Testni topshirishda xatolik:', error);
       
-      // More detailed error handling
       if (error.response) {
         if (error.response.status === 403) {
           setError('Sizga bu testni topshirish uchun ruxsat yo\'q.');
@@ -170,7 +203,7 @@ const Test: React.FC = () => {
         setError(`Xatolik: ${error.message}`);
       }
       
-      message.error('Testni topshirishda xatolik');
+      showToast('Testni topshirishda xatolik', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -185,8 +218,6 @@ const Test: React.FC = () => {
     navigate('/student/results');
   };
 
-
-  // Function to manually fetch questions
   const fetchQuestions = async () => {
     try {
       if (test && test.id) {
@@ -196,77 +227,76 @@ const Test: React.FC = () => {
       }
     } catch (error) {
       console.error('Savollarni olishda xatolik:', error);
-      message.error('Savollarni olishda xatolik');
+      showToast('Savollarni olishda xatolik', 'error');
     }
   };
 
   if (loading) {
     return (
-      <div style={{ padding: '24px' }}>
-        <Card loading style={{ borderRadius: '12px' }} />
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded-md w-3/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded-md w-1/2 mb-6"></div>
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-12 bg-gray-200 rounded-md"></div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ padding: '24px' }}>
-        <Card style={{ borderRadius: '12px' }}>
-          <Alert
-            message="Xatolik"
-            description={error}
-            type="error"
-            showIcon
-          />
-          <div style={{ marginTop: 16, textAlign: 'center' }}>
-            <Button 
-              type="primary" 
-              onClick={() => navigate('/student/tests')}
-              icon={<ArrowLeftOutlined />}
-              style={{
-                borderRadius: '6px',
-                background: 'linear-gradient(90deg, #1890ff 0%, #722ed1 100%)',
-                border: 'none'
-              }}
-            >
-              Testlarga Qaytish
-            </Button>
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+            <AlertTriangle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-red-700">Xatolik</h3>
+              <p className="text-red-600">{error}</p>
+            </div>
           </div>
-        </Card>
+          <div className="flex justify-center mt-6">
+            <button 
+              onClick={() => navigate('/student/tests')}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-md hover:shadow-lg transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Testlarga Qaytish
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!test) {
     return (
-      <div style={{ padding: '24px' }}>
-        <Card style={{ borderRadius: '12px' }}>
-          <Alert
-            message="Test Topilmadi"
-            description="Siz qidirayotgan test topilmadi."
-            type="warning"
-            showIcon
-          />
-          <div style={{ marginTop: 16, textAlign: 'center' }}>
-            <Button 
-              type="primary" 
-              onClick={() => navigate('/student/tests')}
-              icon={<ArrowLeftOutlined />}
-              style={{
-                borderRadius: '6px',
-                background: 'linear-gradient(90deg, #1890ff 0%, #722ed1 100%)',
-                border: 'none'
-              }}
-            >
-              Testlarga Qaytish
-            </Button>
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
+            <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-yellow-700">Test Topilmadi</h3>
+              <p className="text-yellow-600">Siz qidirayotgan test topilmadi.</p>
+            </div>
           </div>
-        </Card>
+          <div className="flex justify-center mt-6">
+            <button 
+              onClick={() => navigate('/student/tests')}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-md hover:shadow-lg transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Testlarga Qaytish
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // If test has been submitted, show results
   if (testResults) {
     const { testResult, questionResults } = testResults;
     const correctAnswers = questionResults.filter(q => q.isCorrect).length;
@@ -274,119 +304,113 @@ const Test: React.FC = () => {
     const scorePercentage = Math.round((correctAnswers / totalQuestions) * 100);
 
     return (
-      <div style={{ padding: '24px', maxWidth: 800, margin: '0 auto' }}>
-        <Card 
-          style={{ 
-            borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            marginBottom: 24
-          }}
-        >
-          <Title level={2}>{testResult.test.title}</Title>
-          <Paragraph>{testResult.test.description}</Paragraph>
-          <Divider />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <Text strong>Ball: </Text>
-              <Text>{correctAnswers} / {totalQuestions} ({scorePercentage}%)</Text>
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-t-4 border-purple-500">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">{testResult.test.title}</h1>
+          <p className="text-gray-600 mb-4">{testResult.test.description}</p>
+          <div className="h-px bg-gray-200 my-4"></div>
+          <div className="flex flex-col md:flex-row justify-between gap-4">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+              <div className="text-lg font-bold text-center text-purple-700">
+                {scorePercentage}%
+              </div>
+              <div className="text-sm text-center text-gray-600">
+                {correctAnswers} / {totalQuestions} to'g'ri
+              </div>
             </div>
-            <div>
-              <Text strong>Topshirilgan vaqt: </Text>
-              <Text>{new Date(testResult.submissionTime).toLocaleString()}</Text>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="text-sm font-medium text-gray-700">Topshirilgan vaqt:</div>
+              <div className="text-sm text-gray-600">
+                {new Date(testResult.submissionTime).toLocaleString()}
+              </div>
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card 
-          title="Savollar Natijalari"
-          style={{ 
-            borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }}
-        >
-          <List
-            dataSource={questionResults}
-            renderItem={(item, index) => (
-              <List.Item>
-                <div style={{ width: '100%' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ marginRight: 8, fontWeight: 'bold' }}>Savol {index + 1}:</span>
-                    {item.isCorrect ? (
-                      <Tag icon={<CheckCircleOutlined />} color="success">To'g'ri</Tag>
-                    ) : (
-                      <Tag icon={<CloseCircleOutlined />} color="error">Noto'g'ri</Tag>
-                    )}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
+            <h2 className="text-xl font-bold text-white">Savollar Natijalari</h2>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {questionResults.map((item, index) => (
+              <div key={index} className="p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-700 font-bold text-sm">
+                    {index + 1}
                   </div>
-                  <Paragraph style={{ marginBottom: 8 }}>{item.questionText}</Paragraph>
-                  <div style={{ marginLeft: 16 }}>
-                    <Text strong>Sizning javobingiz: </Text>
-                    <Text type={item.isCorrect ? "success" : "danger"}>{item.studentAnswer}</Text>
-                    {!item.isCorrect && (
-                      <>
-                        <br />
-                        <Text strong>To'g'ri javob: </Text>
-                        <Text type="success">{item.correctAnswer}</Text>
-                      </>
-                    )}
-                  </div>
+                  {item.isCorrect ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      To'g'ri
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      <XCircle className="w-3 h-3 mr-1" />
+                      Noto'g'ri
+                    </span>
+                  )}
                 </div>
-              </List.Item>
-            )}
-          />
-        </Card>
+                <p className="text-gray-800 mb-3 font-medium">{item.questionText}</p>
+                <div className="ml-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="font-medium text-sm text-gray-700">Sizning javobingiz:</span>
+                    <span className={item.isCorrect ? "text-green-600" : "text-red-600"}>
+                      {item.studentAnswer}
+                    </span>
+                  </div>
+                  {!item.isCorrect && (
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium text-sm text-gray-700">To'g'ri javob:</span>
+                      <span className="text-green-600">{item.correctAnswer}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-        <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <Button 
-            type="primary" 
+        <div className="mt-8 text-center">
+          <button 
             onClick={handleViewAllResults}
-            icon={<CheckOutlined />}
-            style={{
-              height: '45px',
-              padding: '0 32px',
-              borderRadius: '6px',
-              fontSize: '16px',
-              background: 'linear-gradient(90deg, #1890ff 0%, #722ed1 100%)',
-              border: 'none'
-            }}
+            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
           >
+            <Check className="w-5 h-5" />
             Barcha Natijalarimni Ko'rish
-          </Button>
+          </button>
         </div>
       </div>
     );
   }
 
-  // Show loading state while questions are being fetched
   if (test && (!questions || questions.length === 0)) {
     return (
-      <div style={{ padding: '24px', maxWidth: 800, margin: '0 auto' }}>
-        <Card style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-          <Title level={2}>{test.title}</Title>
-          <Text>{test.description}</Text>
-          <div style={{ marginTop: 24, textAlign: 'center' }}>
-            <Progress type="circle" percent={100} status="active" />
-            <Paragraph style={{ marginTop: 16 }}>Savollar yuklanmoqda...</Paragraph>
-            <Button 
-              type="primary" 
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">{test.title}</h1>
+          <p className="text-gray-600 mb-6">{test.description}</p>
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-700 mb-4">Savollar yuklanmoqda...</p>
+            <button 
               onClick={fetchQuestions}
-              style={{ marginTop: 16 }}
+              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-md hover:shadow-lg transition-all"
             >
               Savollarni qayta yuklash
-            </Button>
+            </button>
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
 
-  // Otherwise, show the test form
   return (
-    <div style={{ padding: '24px', maxWidth: 800, margin: '0 auto' }}>
+    <div className="p-6 max-w-3xl mx-auto">
       <TestProgress
         currentQuestion={currentQuestionIndex + 1}
         totalQuestions={questions.length || 0}
         remainingTime={remainingTime}
-        onTimeUp={() => message.warning('Test vaqti tugadi!')}
+        onTimeUp={() => showToast('Test vaqti tugadi!', 'warning')}
         isCorrect={isCorrect}
       />
 
@@ -398,93 +422,128 @@ const Test: React.FC = () => {
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
         >
-          <Card 
-            style={{ 
-              borderRadius: '12px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              marginBottom: 24
-            }}
-          >
-            <Title level={2}>{test?.title}</Title>
-            <Text>{test?.description}</Text>
-            <div style={{ marginTop: 16 }}>
-              <Progress 
-                percent={getProgress()} 
-                status={getProgress() === 100 ? "success" : "active"}
-                strokeColor={{
-                  '0%': '#1890ff',
-                  '100%': '#722ed1',
-                }}
-              />
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-t-4 border-purple-500">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">{test?.title}</h1>
+            <p className="text-gray-600 mb-4">{test?.description}</p>
+            <div className="mt-4">
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500" 
+                  style={{ width: `${getProgress()}%` }}
+                ></div>
+              </div>
+              <div className="text-right text-xs text-gray-500 mt-1">
+                {Object.keys(answers).length}/{questions.length} savollar javob berildi
+              </div>
             </div>
-          </Card>
+          </div>
 
           {questions && questions.length > 0 ? (
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <div className="space-y-6">
               {questions.map((question, index) => (
-                <Card 
+                <div 
                   key={question.id}
-                  style={{ 
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  }}
+                  className="bg-white rounded-xl shadow-lg overflow-hidden"
                 >
-                  <Title level={4}>Savol {index + 1}: {question.text}</Title>
-                  <Radio.Group
-                    onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                    value={answers[question.id]}
-                  >
-                    <Space direction="vertical" style={{ width: '100%' }}>
-                      {question.options && question.options.map((option: string, index: number) => (
-                        <Radio 
-                          key={index} 
-                          value={option}
-                          style={{ 
-                            margin: '8px 0',
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            border: '1px solid #f0f0f0',
-                            width: '100%',
-                            transition: 'all 0.3s'
-                          }}
-                        >
-                          {option}
-                        </Radio>
-                      ))}
-                    </Space>
-                  </Radio.Group>
-                </Card>
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-purple-600 font-bold text-sm">
+                        {index + 1}
+                      </span>
+                      {question.text}
+                    </h2>
+                  </div>
+                  <div className="p-4">
+                    <div className="grid gap-3">
+                      {question.options && question.options.map((option: string, optIndex: number) => {
+                        const colors = [
+                          'from-red-500 to-red-400',
+                          'from-blue-500 to-blue-400',
+                          'from-yellow-500 to-yellow-400',
+                          'from-green-500 to-green-400',
+                          'from-purple-500 to-purple-400',
+                          'from-pink-500 to-pink-400'
+                        ];
+                        const colorClass = colors[optIndex % colors.length];
+                        
+                        return (
+                          <label 
+                            key={optIndex}
+                            className={`
+                              relative block p-4 rounded-lg cursor-pointer transition-all
+                              ${answers[question.id] === option 
+                                ? `bg-gradient-to-r ${colorClass} text-white shadow-md` 
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}
+                            `}
+                          >
+                            <input
+                              type="radio"
+                              name={`question-${question.id}`}
+                              value={option}
+                              checked={answers[question.id] === option}
+                              onChange={() => handleAnswerChange(question.id, option)}
+                              className="sr-only"
+                            />
+                            <div className="flex items-center gap-3">
+                              <div className={`
+                                flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold
+                                ${answers[question.id] === option 
+                                  ? 'bg-white text-gray-800' 
+                                  : 'bg-white text-gray-600 border border-gray-300'}
+                              `}>
+                                {String.fromCharCode(65 + optIndex)}
+                              </div>
+                              <span className="font-medium">{option}</span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               ))}
-            </Space>
+            </div>
           ) : (
-            <Card style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              <Alert
-                message="Savollar topilmadi"
-                description="Bu testda savollar mavjud emas yoki ularni yuklab olishda xatolik yuz berdi."
-                type="warning"
-                showIcon
-              />
-            </Card>
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-bold text-yellow-700">Savollar topilmadi</h3>
+                  <p className="text-yellow-600">Bu testda savollar mavjud emas yoki ularni yuklab olishda xatolik yuz berdi.</p>
+                </div>
+              </div>
+            </div>
           )}
 
-          <div style={{ marginTop: 24, textAlign: 'center' }}>
-            <Button 
-              type="primary" 
+          <div className="mt-8 text-center">
+            <button 
               onClick={handleSubmit}
-              loading={submitting}
-              disabled={!questions || Object.keys(answers).length !== questions.length}
-              icon={<CheckOutlined />}
-              style={{
-                height: '45px',
-                padding: '0 32px',
-                borderRadius: '6px',
-                fontSize: '16px',
-                background: 'linear-gradient(90deg, #1890ff 0%, #722ed1 100%)',
-                border: 'none'
-              }}
+              disabled={!questions || Object.keys(answers).length !== questions.length || submitting}
+              className={`
+                inline-flex items-center gap-2 px-8 py-4 font-medium rounded-full shadow-lg 
+                transition-all transform hover:-translate-y-1
+                ${!questions || Object.keys(answers).length !== questions.length || submitting
+                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-xl'}
+              `}
             >
-              Testni Topshirish
-            </Button>
+              {submitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Topshirilmoqda...
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  Testni Topshirish
+                </>
+              )}
+            </button>
+            {!questions || Object.keys(answers).length !== questions.length ? (
+              <p className="text-sm text-gray-500 mt-2">
+                Testni topshirish uchun barcha savollarga javob bering
+              </p>
+            ) : null}
           </div>
         </motion.div>
       </AnimatePresence>
@@ -492,4 +551,4 @@ const Test: React.FC = () => {
   );
 };
 
-export default Test; 
+export default Test;
