@@ -33,16 +33,22 @@ const TestProgress: React.FC<{
   remainingTime: number;
   onTimeUp: () => void;
   isCorrect: boolean;
-}> = ({ currentQuestion, totalQuestions, remainingTime }) => {
+}> = ({ currentQuestion, totalQuestions, remainingTime, onTimeUp }) => {
   const minutes = Math.floor(remainingTime / 60);
   const seconds = remainingTime % 60;
+
+  useEffect(() => {
+    if (remainingTime <= 0) {
+      onTimeUp();
+    }
+  }, [remainingTime, onTimeUp]);
 
   return (
     <div className="bg-white rounded-xl shadow-md p-4 mb-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-purple-600">
-            Savol {currentQuestion}/{totalQuestions}
+            Question {currentQuestion}/{totalQuestions}
           </span>
           <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div 
@@ -72,45 +78,27 @@ const Test: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [testResults, setTestResults] = useState<TestSubmissionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [remainingTime, setRemainingTime] = useState<number>(0);
-  const [isCorrect, __] = useState<boolean>(false);
-  const [currentQuestionIndex, _] = useState<number>(0);
+  const [remainingTime, setRemainingTime] = useState<number>(120); // 2 minutes in seconds
+  const [isCorrect, setIsCorrect] = useState<boolean>(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [timeUp, setTimeUp] = useState<boolean>(false);
 
   useEffect(() => {
     if (testAccessId && testAccessId !== 'undefined') {
       fetchTest();
     } else {
-      setError('Noto\'g\'ri test identifikatori');
+      setError('Invalid test identifier');
       setLoading(false);
     }
   }, [testAccessId]);
 
   useEffect(() => {
-    console.log('Test data:', test);
-    console.log('Questions data:', questions);
-  }, [test, questions]);
-
-  useEffect(() => {
-    if (test) {
-      setRemainingTime(test.duration * 60);
+    if (timeUp) {
+      handleSubmit();
     }
-  }, [test]);
-
-  useEffect(() => {
-    if (remainingTime <= 0) {
-      showToast('Test vaqti tugadi!', 'warning');
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setRemainingTime(prev => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [remainingTime]);
+  }, [timeUp]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
-    // Simple toast implementation - in a real app, you'd use a proper toast library
     const toast = document.createElement('div');
     toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
       type === 'success' ? 'bg-green-500' : 
@@ -132,36 +120,37 @@ const Test: React.FC = () => {
       const testResponse = await getTestByAccessId(testAccessId!);
       
       if (!testResponse) {
-        throw new Error('Test topilmadi');
+        throw new Error('Test not found');
       }
       
       setTest(testResponse);
       
       if (testResponse && testResponse.id) {
         const questionsResponse = await getTestQuestions(testResponse.id);
-        console.log('Questions from API:', questionsResponse);
         setQuestions(questionsResponse);
+        // Set initial time based on number of questions (2 minutes per question)
+        setRemainingTime(questionsResponse.length * 120);
       } else {
-        throw new Error('Test identifikatori topilmadi');
+        throw new Error('Test identifier not found');
       }
     } catch (error: any) {
-      console.error('Testni olishda xatolik:', error);
+      console.error('Error fetching test:', error);
       
       if (error.response) {
         if (error.response.status === 403) {
-          setError('Sizga bu testni ko\'rish uchun ruxsat yo\'q. Iltimos, o\'qituvchingiz bilan bog\'laning.');
+          setError('You do not have permission to view this test. Please contact your teacher.');
         } else if (error.response.status === 404) {
-          setError('Test topilmadi. Test identifikatori noto\'g\'ri yoki test o\'chirilgan bo\'lishi mumkin.');
+          setError('Test not found. The test identifier may be incorrect or the test may have been deleted.');
         } else {
-          setError(`Server xatosi: ${error.response.status}. ${error.response.data?.message || 'Ma\'lumot yo\'q'}`);
+          setError(`Server error: ${error.response.status}. ${error.response.data?.message || 'No information'}`);
         }
       } else if (error.request) {
-        setError('Server bilan bog\'lanishda xatolik. Iltimos, internet aloqangizni tekshiring.');
+        setError('Error connecting to server. Please check your internet connection.');
       } else {
-        setError(`Xatolik: ${error.message}`);
+        setError(`Error: ${error.message}`);
       }
       
-      showToast('Testni olishda xatolik', 'error');
+      showToast('Error fetching test', 'error');
     } finally {
       setLoading(false);
     }
@@ -172,41 +161,59 @@ const Test: React.FC = () => {
       ...prev,
       [questionId]: answer,
     }));
+    setIsCorrect(questions.find(q => q.id === questionId)?.correctAnswer === answer);
+    
+    // Move to next question if available
+    const currentIndex = questions.findIndex(q => q.id === questionId);
+    if (currentIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentIndex + 1);
+    }
   };
 
   const handleSubmit = async () => {
+    if (timeUp || submitting) return;
+    
     try {
       setSubmitting(true);
       setError(null);
       
-      console.log('Submitting answers:', answers);
+      // Fill unanswered questions with empty strings
+      const allAnswers = {...answers};
+      questions.forEach(question => {
+        if (!allAnswers[question.id]) {
+          allAnswers[question.id] = '';
+        }
+      });
       
-      const response = await submitTest(testAccessId!, answers);
-      
+      const response = await submitTest(testAccessId!, allAnswers);
       setTestResults(response);
-      
-      showToast('Test muvaffaqiyatli topshirildi', 'success');
+      showToast('Test submitted successfully', 'success');
     } catch (error: any) {
-      console.error('Testni topshirishda xatolik:', error);
+      console.error('Error submitting test:', error);
       
       if (error.response) {
         if (error.response.status === 403) {
-          setError('Sizga bu testni topshirish uchun ruxsat yo\'q.');
+          setError('You do not have permission to submit this test.');
         } else if (error.response.status === 404) {
-          setError('Test topilmadi. Test identifikatori noto\'g\'ri yoki test o\'chirilgan bo\'lishi mumkin.');
+          setError('Test not found. The test identifier may be incorrect or the test may have been deleted.');
         } else {
-          setError(`Server xatosi: ${error.response.status}. ${error.response.data?.message || 'Ma\'lumot yo\'q'}`);
+          setError(`Server error: ${error.response.status}. ${error.response.data?.message || 'No information'}`);
         }
       } else if (error.request) {
-        setError('Server bilan bog\'lanishda xatolik. Iltimos, internet aloqangizni tekshiring.');
+        setError('Error connecting to server. Please check your internet connection.');
       } else {
-        setError(`Xatolik: ${error.message}`);
+        setError(`Error: ${error.message}`);
       }
       
-      showToast('Testni topshirishda xatolik', 'error');
+      showToast('Error submitting test', 'error');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleTimeUp = () => {
+    setTimeUp(true);
+    showToast('Time is up! Test will be automatically submitted.', 'warning');
   };
 
   const getProgress = () => {
@@ -218,28 +225,15 @@ const Test: React.FC = () => {
     navigate('/student/results');
   };
 
-  const fetchQuestions = async () => {
-    try {
-      if (test && test.id) {
-        const questionsResponse = await getTestQuestions(test.id);
-        console.log('Questions fetched manually:', questionsResponse);
-        setQuestions(questionsResponse);
-      }
-    } catch (error) {
-      console.error('Savollarni olishda xatolik:', error);
-      showToast('Savollarni olishda xatolik', 'error');
-    }
-  };
-
   if (loading) {
     return (
-      <div className="p-6 max-w-3xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg p-6 animate-pulse">
-          <div className="h-8 bg-gray-200 rounded-md w-3/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded-md w-1/2 mb-6"></div>
-          <div className="space-y-4">
+      <div className="p-2 sm:p-3 max-w-3xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 animate-pulse">
+          <div className="h-6 sm:h-8 bg-gray-200 rounded-md w-3/4 mb-3"></div>
+          <div className="h-3 sm:h-4 bg-gray-200 rounded-md w-1/2 mb-4"></div>
+          <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-12 bg-gray-200 rounded-md"></div>
+              <div key={i} className="h-10 sm:h-12 bg-gray-200 rounded-md"></div>
             ))}
           </div>
         </div>
@@ -249,24 +243,20 @@ const Test: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-6 max-w-3xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
-            <AlertTriangle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-red-700">Xatolik</h3>
-              <p className="text-red-600">{error}</p>
-            </div>
+      <div className="p-2 sm:p-3 max-w-3xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4">
+          <div className="flex items-center gap-2 text-red-500 mb-3">
+            <AlertTriangle className="w-5 h-5" />
+            <h2 className="text-lg font-semibold">Error</h2>
           </div>
-          <div className="flex justify-center mt-6">
-            <button 
-              onClick={() => navigate('/student/tests')}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-md hover:shadow-lg transition-all"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Testlarga Qaytish
-            </button>
-          </div>
+          <p className="text-gray-700 mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/student/tests')}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to tests list
+          </button>
         </div>
       </div>
     );
@@ -279,8 +269,8 @@ const Test: React.FC = () => {
           <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
             <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-bold text-yellow-700">Test Topilmadi</h3>
-              <p className="text-yellow-600">Siz qidirayotgan test topilmadi.</p>
+              <h3 className="font-bold text-yellow-700">Test Not Found</h3>
+              <p className="text-yellow-600">The test you are looking for was not found.</p>
             </div>
           </div>
           <div className="flex justify-center mt-6">
@@ -289,7 +279,7 @@ const Test: React.FC = () => {
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-md hover:shadow-lg transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
-              Testlarga Qaytish
+              Back to Tests
             </button>
           </div>
         </div>
@@ -315,11 +305,11 @@ const Test: React.FC = () => {
                 {scorePercentage}%
               </div>
               <div className="text-sm text-center text-gray-600">
-                {correctAnswers} / {totalQuestions} to'g'ri
+                {correctAnswers} / {totalQuestions} correct
               </div>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="text-sm font-medium text-gray-700">Topshirilgan vaqt:</div>
+              <div className="text-sm font-medium text-gray-700">Submission Time:</div>
               <div className="text-sm text-gray-600">
                 {new Date(testResult.submissionTime).toLocaleString()}
               </div>
@@ -329,7 +319,7 @@ const Test: React.FC = () => {
 
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
-            <h2 className="text-xl font-bold text-white">Savollar Natijalari</h2>
+            <h2 className="text-xl font-bold text-white">Question Results</h2>
           </div>
           <div className="divide-y divide-gray-100">
             {questionResults.map((item, index) => (
@@ -341,26 +331,26 @@ const Test: React.FC = () => {
                   {item.isCorrect ? (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                       <CheckCircle className="w-3 h-3 mr-1" />
-                      To'g'ri
+                      Correct
                     </span>
                   ) : (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                       <XCircle className="w-3 h-3 mr-1" />
-                      Noto'g'ri
+                      Incorrect
                     </span>
                   )}
                 </div>
                 <p className="text-gray-800 mb-3 font-medium">{item.questionText}</p>
                 <div className="ml-4 space-y-2">
                   <div className="flex items-start gap-2">
-                    <span className="font-medium text-sm text-gray-700">Sizning javobingiz:</span>
+                    <span className="font-medium text-sm text-gray-700">Your answer:</span>
                     <span className={item.isCorrect ? "text-green-600" : "text-red-600"}>
-                      {item.studentAnswer}
+                      {item.studentAnswer || "No answer provided"}
                     </span>
                   </div>
                   {!item.isCorrect && (
                     <div className="flex items-start gap-2">
-                      <span className="font-medium text-sm text-gray-700">To'g'ri javob:</span>
+                      <span className="font-medium text-sm text-gray-700">Correct answer:</span>
                       <span className="text-green-600">{item.correctAnswer}</span>
                     </div>
                   )}
@@ -376,7 +366,7 @@ const Test: React.FC = () => {
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
           >
             <Check className="w-5 h-5" />
-            Barcha Natijalarimni Ko'rish
+            View All My Results
           </button>
         </div>
       </div>
@@ -391,13 +381,7 @@ const Test: React.FC = () => {
           <p className="text-gray-600 mb-6">{test.description}</p>
           <div className="flex flex-col items-center justify-center py-8">
             <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-700 mb-4">Savollar yuklanmoqda...</p>
-            <button 
-              onClick={fetchQuestions}
-              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-md hover:shadow-lg transition-all"
-            >
-              Savollarni qayta yuklash
-            </button>
+            <p className="text-gray-700 mb-4">Loading questions...</p>
           </div>
         </div>
       </div>
@@ -410,7 +394,7 @@ const Test: React.FC = () => {
         currentQuestion={currentQuestionIndex + 1}
         totalQuestions={questions.length || 0}
         remainingTime={remainingTime}
-        onTimeUp={() => showToast('Test vaqti tugadi!', 'warning')}
+        onTimeUp={handleTimeUp}
         isCorrect={isCorrect}
       />
 
@@ -433,96 +417,96 @@ const Test: React.FC = () => {
                 ></div>
               </div>
               <div className="text-right text-xs text-gray-500 mt-1">
-                {Object.keys(answers).length}/{questions.length} savollar javob berildi
+                {Object.keys(answers).length}/{questions.length} questions answered
               </div>
             </div>
           </div>
 
-          {questions && questions.length > 0 ? (
+          {questions && questions.length > 0 && (
             <div className="space-y-6">
-              {questions.map((question, index) => (
-                <div 
-                  key={question.id}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden"
-                >
-                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-purple-600 font-bold text-sm">
-                        {index + 1}
-                      </span>
-                      {question.text}
-                    </h2>
-                  </div>
-                  <div className="p-4">
-                    <div className="grid gap-3">
-                      {question.options && question.options.map((option: string, optIndex: number) => {
-                        const colors = [
-                          'from-red-500 to-red-400',
-                          'from-blue-500 to-blue-400',
-                          'from-yellow-500 to-yellow-400',
-                          'from-green-500 to-green-400',
-                          'from-purple-500 to-purple-400',
-                          'from-pink-500 to-pink-400'
-                        ];
-                        const colorClass = colors[optIndex % colors.length];
-                        
-                        return (
-                          <label 
-                            key={optIndex}
-                            className={`
-                              relative block p-4 rounded-lg cursor-pointer transition-all
-                              ${answers[question.id] === option 
-                                ? `bg-gradient-to-r ${colorClass} text-white shadow-md` 
-                                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}
-                            `}
-                          >
-                            <input
-                              type="radio"
-                              name={`question-${question.id}`}
-                              value={option}
-                              checked={answers[question.id] === option}
-                              onChange={() => handleAnswerChange(question.id, option)}
-                              className="sr-only"
-                            />
-                            <div className="flex items-center gap-3">
-                              <div className={`
-                                flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold
-                                ${answers[question.id] === option 
-                                  ? 'bg-white text-gray-800' 
-                                  : 'bg-white text-gray-600 border border-gray-300'}
-                              `}>
-                                {String.fromCharCode(65 + optIndex)}
-                              </div>
-                              <span className="font-medium">{option}</span>
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
+              <div 
+                key={questions[currentQuestionIndex].id}
+                className="bg-white rounded-xl shadow-lg overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-purple-600 font-bold text-sm">
+                      {currentQuestionIndex + 1}
+                    </span>
+                    {questions[currentQuestionIndex].text}
+                  </h2>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-bold text-yellow-700">Savollar topilmadi</h3>
-                  <p className="text-yellow-600">Bu testda savollar mavjud emas yoki ularni yuklab olishda xatolik yuz berdi.</p>
+                <div className="p-4">
+                  <div className="grid gap-3">
+                    {questions[currentQuestionIndex].options.map((option: string, optIndex: number) => {
+                      const colors = [
+                        'from-red-500 to-red-400',
+                        'from-blue-500 to-blue-400',
+                        'from-yellow-500 to-yellow-400',
+                        'from-green-500 to-green-400',
+                        'from-purple-500 to-purple-400',
+                        'from-pink-500 to-pink-400'
+                      ];
+                      const colorClass = colors[optIndex % colors.length];
+                      
+                      return (
+                        <label 
+                          key={optIndex}
+                          className={`
+                            relative block p-4 rounded-lg cursor-pointer transition-all
+                            ${answers[questions[currentQuestionIndex].id] === option 
+                              ? `bg-gradient-to-r ${colorClass} text-white shadow-md` 
+                              : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}
+                          `}
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${questions[currentQuestionIndex].id}`}
+                            value={option}
+                            checked={answers[questions[currentQuestionIndex].id] === option}
+                            onChange={() => handleAnswerChange(questions[currentQuestionIndex].id, option)}
+                            className="sr-only"
+                          />
+                          <div className="flex items-center gap-3">
+                            <div className={`
+                              flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold
+                              ${answers[questions[currentQuestionIndex].id] === option 
+                                ? 'bg-white text-gray-800' 
+                                : 'bg-white text-gray-600 border border-gray-300'}
+                            `}>
+                              {String.fromCharCode(65 + optIndex)}
+                            </div>
+                            <span className="font-medium">{option}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 flex justify-between">
+            {currentQuestionIndex > 0 && (
+              <button
+                onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
+                className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-full shadow-md hover:shadow-lg transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Previous Question
+              </button>
+            )}
+            
+            <div className="flex-grow"></div>
+            
             <button 
               onClick={handleSubmit}
-              disabled={!questions || Object.keys(answers).length !== questions.length || submitting}
+              disabled={submitting}
               className={`
-                inline-flex items-center gap-2 px-8 py-4 font-medium rounded-full shadow-lg 
+                inline-flex items-center gap-2 px-8 py-3 font-medium rounded-full shadow-lg 
                 transition-all transform hover:-translate-y-1
-                ${!questions || Object.keys(answers).length !== questions.length || submitting
+                ${submitting
                   ? 'bg-gray-400 text-white cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-xl'}
               `}
@@ -530,20 +514,15 @@ const Test: React.FC = () => {
               {submitting ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Topshirilmoqda...
+                  Submitting...
                 </>
               ) : (
                 <>
                   <Check className="w-5 h-5" />
-                  Testni Topshirish
+                  Submit Test
                 </>
               )}
             </button>
-            {!questions || Object.keys(answers).length !== questions.length ? (
-              <p className="text-sm text-gray-500 mt-2">
-                Testni topshirish uchun barcha savollarga javob bering
-              </p>
-            ) : null}
           </div>
         </motion.div>
       </AnimatePresence>

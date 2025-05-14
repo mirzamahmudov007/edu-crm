@@ -21,7 +21,7 @@ export interface Test {
   startTime: string;
   endTime: string;
   group: Group;
-  questions: Question[];
+  totalQuestions: any[];
 }
 
 export interface Question {

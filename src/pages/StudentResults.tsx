@@ -62,7 +62,7 @@ const StudentResults: React.FC = () => {
       title: 'Ball',
       dataIndex: 'score',
       key: 'score',
-      render: (score: number, record: TestResult) => {
+      render: (score: number, record: any) => {
         const totalQuestions = record.test.questions.length;
         const percentage = (score / totalQuestions) * 100;
         return (
@@ -94,7 +94,7 @@ const StudentResults: React.FC = () => {
     {
       title: 'Holat',
       key: 'status',
-      render: (record: TestResult) => {
+      render: (record: any) => {
         const totalQuestions = record.test.questions.length;
         const color = getScoreColor(record.score, totalQuestions);
         const text = getScoreText(record.score, totalQuestions);
@@ -112,18 +112,18 @@ const StudentResults: React.FC = () => {
           onClick={() => navigate(`/student/results/${record.id}`)}
           className="rounded-md bg-gradient-to-r from-blue-500 to-purple-600 border-none hover:from-blue-600 hover:to-purple-700"
         >
-          Batafsil ko‘rish
+          Batafsil ko'rish
         </Button>
       ),
     },
   ];
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex justify-between items-center">
+    <div className="p-2 sm:p-3">
+      <div className="mb-3 sm:mb-4 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Mening Test Natijalarim</h2>
-          <p className="text-gray-500">Bu yerda siz o‘z test natijalaringizni ko‘rishingiz mumkin</p>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800">Mening Test Natijalarim</h2>
+          <p className="text-sm text-gray-500">Bu yerda siz o'z test natijalaringizni ko'rishingiz mumkin</p>
         </div>
       </div>
 

@@ -450,7 +450,7 @@ const AdminTests: React.FC = () => {
                       <Divider />
                       <p><strong className="text-gray-700">Guruh:</strong> {selectedTest.group?.name}</p>
                       <p><strong className="text-gray-700">O'qituvchi:</strong> {selectedTest.group?.teacher?.fullName}</p>
-                      <p><strong className="text-gray-700">Savollar Soni:</strong> {selectedTest.questions?.length || 0}</p>
+                      <p><strong className="text-gray-700">Savollar Soni:</strong> {selectedTest.totalQuestions || 0}</p>
                     </div>
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
