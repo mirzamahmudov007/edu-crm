@@ -1,47 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getTestByAccessId, getTestQuestions, submitTest } from '../services/tests.service';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, ArrowLeft, Check, Clock, AlertTriangle } from 'lucide-react';
+"use client"
+
+import type React from "react"
+import { useState, useEffect } from "react"
+import { useParams, useNavigate } from "react-router-dom"
+import { getTestByAccessId, getTestQuestions, submitTest } from "../services/tests.service"
+import { motion, AnimatePresence } from "framer-motion"
+import { CheckCircle, XCircle, ArrowLeft, Check, Clock, AlertTriangle } from "lucide-react"
 
 interface QuestionResult {
-  questionId: number;
-  questionText: string;
-  studentAnswer: string;
-  correctAnswer: string;
-  isCorrect: boolean;
+  questionId: number
+  questionText: string
+  studentAnswer: string
+  correctAnswer: string
+  isCorrect: boolean
 }
 
 interface TestResult {
-  id: number;
+  id: number
   test: {
-    title: string;
-    description: string;
-  };
-  score: number;
-  submissionTime: string;
+    title: string
+    description: string
+  }
+  score: number
+  submissionTime: string
 }
 
 interface TestSubmissionResponse {
-  testResult: TestResult;
-  questionResults: QuestionResult[];
+  testResult: TestResult
+  questionResults: QuestionResult[]
+}
+
+interface Question {
+  id: number
+  text: string
+  options: string[]
+  correctAnswer: string
 }
 
 const TestProgress: React.FC<{
-  currentQuestion: number;
-  totalQuestions: number;
-  remainingTime: number;
-  onTimeUp: () => void;
-  isCorrect: boolean;
+  currentQuestion: number
+  totalQuestions: number
+  remainingTime: number
+  onTimeUp: () => void
+  isCorrect: boolean
 }> = ({ currentQuestion, totalQuestions, remainingTime, onTimeUp }) => {
-  const minutes = Math.floor(remainingTime / 60);
-  const seconds = remainingTime % 60;
+  const minutes = Math.floor(remainingTime / 60)
+  const seconds = remainingTime % 60
 
   useEffect(() => {
     if (remainingTime <= 0) {
-      onTimeUp();
+      onTimeUp()
     }
-  }, [remainingTime, onTimeUp]);
+  }, [remainingTime, onTimeUp])
 
   return (
     <div className="bg-white rounded-xl shadow-md p-4 mb-6">
@@ -51,179 +61,197 @@ const TestProgress: React.FC<{
             Question {currentQuestion}/{totalQuestions}
           </span>
           <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-blue-500 to-purple-600" 
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
               style={{ width: `${(currentQuestion / totalQuestions) * 100}%` }}
             ></div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-orange-500" />
-          <span className={`font-mono font-bold ${remainingTime < 60 ? 'text-red-500 animate-pulse' : 'text-gray-700'}`}>
-            {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+          <span
+            className={`font-mono font-bold ${remainingTime < 60 ? "text-red-500 animate-pulse" : "text-gray-700"}`}
+          >
+            {minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
           </span>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const Test: React.FC = () => {
-  const { testAccessId } = useParams<{ testAccessId: string }>();
-  const navigate = useNavigate();
-  const [test, setTest] = useState<any>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [testResults, setTestResults] = useState<TestSubmissionResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [remainingTime, setRemainingTime] = useState<number>(120); // 2 minutes in seconds
-  const [isCorrect, setIsCorrect] = useState<boolean>(false);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-  const [timeUp, setTimeUp] = useState<boolean>(false);
+  const { testAccessId } = useParams<{ testAccessId: string }>()
+  const navigate = useNavigate()
+  const [test, setTest] = useState<any>(null)
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [testResults, setTestResults] = useState<TestSubmissionResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [remainingTime, setRemainingTime] = useState<number>(120) // 2 minutes in seconds
+  const [isCorrect, setIsCorrect] = useState<boolean>(false)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0)
+  const [timeUp, setTimeUp] = useState<boolean>(false)
 
   useEffect(() => {
-    if (testAccessId && testAccessId !== 'undefined') {
-      fetchTest();
+    if (testAccessId && testAccessId !== "undefined") {
+      fetchTest()
     } else {
-      setError('Invalid test identifier');
-      setLoading(false);
+      setError("Invalid test identifier")
+      setLoading(false)
     }
-  }, [testAccessId]);
+  }, [testAccessId])
 
   useEffect(() => {
     if (timeUp) {
-      handleSubmit();
+      handleSubmit()
     }
-  }, [timeUp]);
+  }, [timeUp])
 
-  const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
-    const toast = document.createElement('div');
+  // Timer effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRemainingTime((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          setTimeUp(true)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  const showToast = (message: string, type: "success" | "error" | "warning") => {
+    const toast = document.createElement("div")
     toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-      type === 'success' ? 'bg-green-500' : 
-      type === 'error' ? 'bg-red-500' : 'bg-yellow-500'
-    } text-white`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
+      type === "success" ? "bg-green-500" : type === "error" ? "bg-red-500" : "bg-yellow-500"
+    } text-white`
+    toast.textContent = message
+    document.body.appendChild(toast)
     setTimeout(() => {
-      toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
-      setTimeout(() => document.body.removeChild(toast), 500);
-    }, 3000);
-  };
+      toast.classList.add("opacity-0", "transition-opacity", "duration-500")
+      setTimeout(() => document.body.removeChild(toast), 500)
+    }, 3000)
+  }
 
   const fetchTest = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      const testResponse = await getTestByAccessId(testAccessId!);
-      
+      setLoading(true)
+      setError(null)
+
+      const testResponse = await getTestByAccessId(testAccessId!)
+
       if (!testResponse) {
-        throw new Error('Test not found');
+        throw new Error("Test not found")
       }
-      
-      setTest(testResponse);
-      
+
+      setTest(testResponse)
+
       if (testResponse && testResponse.id) {
-        const questionsResponse = await getTestQuestions(testResponse.id);
-        setQuestions(questionsResponse);
+        const questionsResponse = await getTestQuestions(testResponse.id)
+        setQuestions(questionsResponse)
         // Set initial time based on number of questions (2 minutes per question)
-        setRemainingTime(questionsResponse.length * 120);
+        setRemainingTime(questionsResponse.length * 120)
       } else {
-        throw new Error('Test identifier not found');
+        throw new Error("Test identifier not found")
       }
     } catch (error: any) {
-      console.error('Error fetching test:', error);
-      
+      console.error("Error fetching test:", error)
+
       if (error.response) {
         if (error.response.status === 403) {
-          setError('You do not have permission to view this test. Please contact your teacher.');
+          setError("You do not have permission to view this test. Please contact your teacher.")
         } else if (error.response.status === 404) {
-          setError('Test not found. The test identifier may be incorrect or the test may have been deleted.');
+          setError("Test not found. The test identifier may be incorrect or the test may have been deleted.")
         } else {
-          setError(`Server error: ${error.response.status}. ${error.response.data?.message || 'No information'}`);
+          setError(`Server error: ${error.response.status}. ${error.response.data?.message || "No information"}`)
         }
       } else if (error.request) {
-        setError('Error connecting to server. Please check your internet connection.');
+        setError("Error connecting to server. Please check your internet connection.")
       } else {
-        setError(`Error: ${error.message}`);
+        setError(`Error: ${error.message}`)
       }
-      
-      showToast('Error fetching test', 'error');
+
+      showToast("Error fetching test", "error")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleAnswerChange = (questionId: number, answer: string) => {
     setAnswers((prev) => ({
       ...prev,
       [questionId]: answer,
-    }));
-    setIsCorrect(questions.find(q => q.id === questionId)?.correctAnswer === answer);
-    
+    }))
+
+    const currentQuestion = questions[currentQuestionIndex]
+    setIsCorrect(currentQuestion?.correctAnswer === answer)
+
     // Move to next question if available
-    const currentIndex = questions.findIndex(q => q.id === questionId);
-    if (currentIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentIndex + 1);
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex((currentIndex) => currentIndex + 1)
     }
-  };
+  }
 
   const handleSubmit = async () => {
-    if (timeUp || submitting) return;
-    
+    if (timeUp || submitting) return
+
     try {
-      setSubmitting(true);
-      setError(null);
-      
+      setSubmitting(true)
+      setError(null)
+
       // Fill unanswered questions with empty strings
-      const allAnswers = {...answers};
-      questions.forEach(question => {
+      const allAnswers = { ...answers }
+      questions.forEach((question) => {
         if (!allAnswers[question.id]) {
-          allAnswers[question.id] = '';
+          allAnswers[question.id] = ""
         }
-      });
-      
-      const response = await submitTest(testAccessId!, allAnswers);
-      setTestResults(response);
-      showToast('Test submitted successfully', 'success');
+      })
+
+      const response = await submitTest(testAccessId!, allAnswers)
+      setTestResults(response)
+      showToast("Test submitted successfully", "success")
     } catch (error: any) {
-      console.error('Error submitting test:', error);
-      
+      console.error("Error submitting test:", error)
+
       if (error.response) {
         if (error.response.status === 403) {
-          setError('You do not have permission to submit this test.');
+          setError("You do not have permission to submit this test.")
         } else if (error.response.status === 404) {
-          setError('Test not found. The test identifier may be incorrect or the test may have been deleted.');
+          setError("Test not found. The test identifier may be incorrect or the test may have been deleted.")
         } else {
-          setError(`Server error: ${error.response.status}. ${error.response.data?.message || 'No information'}`);
+          setError(`Server error: ${error.response.status}. ${error.response.data?.message || "No information"}`)
         }
       } else if (error.request) {
-        setError('Error connecting to server. Please check your internet connection.');
+        setError("Error connecting to server. Please check your internet connection.")
       } else {
-        setError(`Error: ${error.message}`);
+        setError(`Error: ${error.message}`)
       }
-      
-      showToast('Error submitting test', 'error');
+
+      showToast("Error submitting test", "error")
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
   const handleTimeUp = () => {
-    setTimeUp(true);
-    showToast('Time is up! Test will be automatically submitted.', 'warning');
-  };
+    setTimeUp(true)
+    showToast("Time is up! Test will be automatically submitted.", "warning")
+  }
 
   const getProgress = () => {
-    const answered = Object.keys(answers).length;
-    return Math.round((answered / questions.length) * 100);
-  };
+    const answered = Object.keys(answers).length
+    return Math.round((answered / questions.length) * 100)
+  }
 
   const handleViewAllResults = () => {
-    navigate('/student/results');
-  };
+    navigate("/student/results")
+  }
 
   if (loading) {
     return (
@@ -232,13 +260,13 @@ const Test: React.FC = () => {
           <div className="h-6 sm:h-8 bg-gray-200 rounded-md w-3/4 mb-3"></div>
           <div className="h-3 sm:h-4 bg-gray-200 rounded-md w-1/2 mb-4"></div>
           <div className="space-y-3">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="h-10 sm:h-12 bg-gray-200 rounded-md"></div>
             ))}
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -251,7 +279,7 @@ const Test: React.FC = () => {
           </div>
           <p className="text-gray-700 mb-4">{error}</p>
           <button
-            onClick={() => navigate('/student/tests')}
+            onClick={() => navigate("/student/tests")}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -259,7 +287,7 @@ const Test: React.FC = () => {
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   if (!test) {
@@ -274,8 +302,8 @@ const Test: React.FC = () => {
             </div>
           </div>
           <div className="flex justify-center mt-6">
-            <button 
-              onClick={() => navigate('/student/tests')}
+            <button
+              onClick={() => navigate("/student/tests")}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-md hover:shadow-lg transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -284,14 +312,14 @@ const Test: React.FC = () => {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   if (testResults) {
-    const { testResult, questionResults } = testResults;
-    const correctAnswers = questionResults.filter(q => q.isCorrect).length;
-    const totalQuestions = questionResults.length;
-    const scorePercentage = Math.round((correctAnswers / totalQuestions) * 100);
+    const { testResult, questionResults } = testResults
+    const correctAnswers = questionResults.filter((q) => q.isCorrect).length
+    const totalQuestions = questionResults.length
+    const scorePercentage = Math.round((correctAnswers / totalQuestions) * 100)
 
     return (
       <div className="p-6 max-w-3xl mx-auto">
@@ -301,18 +329,14 @@ const Test: React.FC = () => {
           <div className="h-px bg-gray-200 my-4"></div>
           <div className="flex flex-col md:flex-row justify-between gap-4">
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
-              <div className="text-lg font-bold text-center text-purple-700">
-                {scorePercentage}%
-              </div>
+              <div className="text-lg font-bold text-center text-purple-700">{scorePercentage}%</div>
               <div className="text-sm text-center text-gray-600">
                 {correctAnswers} / {totalQuestions} correct
               </div>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="text-sm font-medium text-gray-700">Submission Time:</div>
-              <div className="text-sm text-gray-600">
-                {new Date(testResult.submissionTime).toLocaleString()}
-              </div>
+              <div className="text-sm text-gray-600">{new Date(testResult.submissionTime).toLocaleString()}</div>
             </div>
           </div>
         </div>
@@ -361,7 +385,7 @@ const Test: React.FC = () => {
         </div>
 
         <div className="mt-8 text-center">
-          <button 
+          <button
             onClick={handleViewAllResults}
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
           >
@@ -370,7 +394,7 @@ const Test: React.FC = () => {
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   if (test && (!questions || questions.length === 0)) {
@@ -385,8 +409,11 @@ const Test: React.FC = () => {
           </div>
         </div>
       </div>
-    );
+    )
   }
+
+  // Check if we have the current question
+  const currentQuestion = questions[currentQuestionIndex]
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -411,8 +438,8 @@ const Test: React.FC = () => {
             <p className="text-gray-600 mb-4">{test?.description}</p>
             <div className="mt-4">
               <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500" 
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500"
                   style={{ width: `${getProgress()}%` }}
                 ></div>
               </div>
@@ -422,66 +449,78 @@ const Test: React.FC = () => {
             </div>
           </div>
 
-          {questions && questions.length > 0 && (
+          {questions && questions.length > 0 && currentQuestion && (
             <div className="space-y-6">
-              <div 
-                key={questions[currentQuestionIndex].id}
-                className="bg-white rounded-xl shadow-lg overflow-hidden"
-              >
+              <div key={currentQuestion.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
                     <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-purple-600 font-bold text-sm">
                       {currentQuestionIndex + 1}
                     </span>
-                    {questions[currentQuestionIndex].text}
+                    {currentQuestion.text}
                   </h2>
                 </div>
                 <div className="p-4">
-                  <div className="grid gap-3">
-                    {questions[currentQuestionIndex].options.map((option: string, optIndex: number) => {
-                      const colors = [
-                        'from-red-500 to-red-400',
-                        'from-blue-500 to-blue-400',
-                        'from-yellow-500 to-yellow-400',
-                        'from-green-500 to-green-400',
-                        'from-purple-500 to-purple-400',
-                        'from-pink-500 to-pink-400'
-                      ];
-                      const colorClass = colors[optIndex % colors.length];
-                      
-                      return (
-                        <label 
-                          key={optIndex}
-                          className={`
-                            relative block p-4 rounded-lg cursor-pointer transition-all
-                            ${answers[questions[currentQuestionIndex].id] === option 
-                              ? `bg-gradient-to-r ${colorClass} text-white shadow-md` 
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}
-                          `}
-                        >
-                          <input
-                            type="radio"
-                            name={`question-${questions[currentQuestionIndex].id}`}
-                            value={option}
-                            checked={answers[questions[currentQuestionIndex].id] === option}
-                            onChange={() => handleAnswerChange(questions[currentQuestionIndex].id, option)}
-                            className="sr-only"
-                          />
-                          <div className="flex items-center gap-3">
-                            <div className={`
-                              flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold
-                              ${answers[questions[currentQuestionIndex].id] === option 
-                                ? 'bg-white text-gray-800' 
-                                : 'bg-white text-gray-600 border border-gray-300'}
-                            `}>
-                              {String.fromCharCode(65 + optIndex)}
+                  {currentQuestion.options && currentQuestion.options.length > 0 ? (
+                    <div className="grid gap-3">
+                      {currentQuestion.options.map((option: string, optIndex: number) => {
+                        const colors = [
+                          "from-red-500 to-red-400",
+                          "from-blue-500 to-blue-400",
+                          "from-yellow-500 to-yellow-400",
+                          "from-green-500 to-green-400",
+                          "from-purple-500 to-purple-400",
+                          "from-pink-500 to-pink-400",
+                        ]
+                        const colorClass = colors[optIndex % colors.length]
+
+                        return (
+                          <label
+                            key={optIndex}
+                            className={`
+                              relative block p-4 rounded-lg cursor-pointer transition-all
+                              ${
+                                answers[currentQuestion.id] === option
+                                  ? `bg-gradient-to-r ${colorClass} text-white shadow-md`
+                                  : "bg-gray-100 hover:bg-gray-200 text-gray-800"
+                              }
+                            `}
+                          >
+                            <input
+                              type="radio"
+                              name={`question-${currentQuestion.id}`}
+                              value={option}
+                              checked={answers[currentQuestion.id] === option}
+                              onChange={() => handleAnswerChange(currentQuestion.id, option)}
+                              className="sr-only"
+                            />
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`
+                                flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold
+                                ${
+                                  answers[currentQuestion.id] === option
+                                    ? "bg-white text-gray-800"
+                                    : "bg-white text-gray-600 border border-gray-300"
+                                }
+                              `}
+                              >
+                                {String.fromCharCode(65 + optIndex)}
+                              </div>
+                              <span className="font-medium">{option}</span>
                             </div>
-                            <span className="font-medium">{option}</span>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-center text-gray-500">
+                        <p>No options available for this question.</p>
+                        <p className="text-sm mt-2">Please contact your teacher.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -490,25 +529,27 @@ const Test: React.FC = () => {
           <div className="mt-8 flex justify-between">
             {currentQuestionIndex > 0 && (
               <button
-                onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
+                onClick={() => setCurrentQuestionIndex((prev) => prev - 1)}
                 className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-full shadow-md hover:shadow-lg transition-all"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Previous Question
               </button>
             )}
-            
+
             <div className="flex-grow"></div>
-            
-            <button 
+
+            <button
               onClick={handleSubmit}
               disabled={submitting}
               className={`
                 inline-flex items-center gap-2 px-8 py-3 font-medium rounded-full shadow-lg 
                 transition-all transform hover:-translate-y-1
-                ${submitting
-                  ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-xl'}
+                ${
+                  submitting
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-xl"
+                }
               `}
             >
               {submitting ? (
@@ -527,7 +568,7 @@ const Test: React.FC = () => {
         </motion.div>
       </AnimatePresence>
     </div>
-  );
-};
+  )
+}
 
-export default Test;
+export default Test
