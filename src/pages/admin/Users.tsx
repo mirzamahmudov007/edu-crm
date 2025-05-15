@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { Table, Button, Space, Modal, Form, Input, Select, message } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, UndoOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { createPortal } from 'react-dom';
 import { AppDispatch, RootState } from '../../store';
 import { 
   fetchUsers, 
@@ -26,70 +25,7 @@ interface UserFormData {
   role: string;
 }
 
-interface DeleteModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  title: string;
-  message: string;
-}
 
-const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, onConfirm, title, message }) => {
-  if (!isOpen) return null;
-
-  return createPortal(
-    <>
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-[1000]" 
-        onClick={onClose}
-        style={{ backdropFilter: 'blur(4px)' }}
-      />
-      <div className="fixed inset-0 z-[1001] overflow-y-auto">
-        <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-          <div 
-            className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-              <div className="sm:flex sm:items-start">
-                <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                  <DeleteOutlined className="h-6 w-6 text-red-600" aria-hidden="true" />
-                </div>
-                <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                  <h3 className="text-base font-semibold leading-6 text-gray-900">
-                    {title}
-                  </h3>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500">
-                      {message}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-              <button
-                type="button"
-                className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto"
-                onClick={onConfirm}
-              >
-                Ha, o'chirish
-              </button>
-              <button
-                type="button"
-                className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-                onClick={onClose}
-              >
-                Bekor qilish
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>,
-    document.body
-  );
-};
 
 const Users: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -102,7 +38,9 @@ const Users: React.FC = () => {
   const [changePassword, setChangePassword] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<number | null>(null);
+  const [restoreModalOpen, setRestoreModalOpen] = useState(false);
+  const [hardDeleteModalOpen, setHardDeleteModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
   useEffect(() => {
     dispatch(fetchUsers());
@@ -210,58 +148,59 @@ const Users: React.FC = () => {
   };
 
   const handleDelete = (id: number) => {
-    setUserToDelete(id);
+    setSelectedUserId(id);
     setDeleteModalOpen(true);
   };
 
   const handleRestore = (id: number) => {
-    Modal.confirm({
-      title: 'Foydalanuvchini qayta tiklash',
-      content: 'Ushbu foydalanuvchini qayta tiklamoqchimisiz? U faol foydalanuvchilar ro\'yxatiga qaytariladi.',
-      okText: 'Ha, tiklash',
-      cancelText: 'Bekor qilish',
-      icon: <UndoOutlined style={{ color: '#52c41a' }} />,
-      onOk: async () => {
-        try {
-          await dispatch(restoreUser(id)).unwrap();
-          message.success('Foydalanuvchi muvaffaqiyatli tiklandi');
-        } catch (error) {
-          message.error('Foydalanuvchini tiklashda xatolik yuz berdi');
-        }
-      },
-    });
+    setSelectedUserId(id);
+    setRestoreModalOpen(true);
   };
 
   const handlePermanentDelete = (id: number) => {
-    Modal.confirm({
-      title: 'Foydalanuvchini butunlay o\'chirish',
-      content: 'Diqqat! Bu amalni ortga qaytarib bo\'lmaydi. Foydalanuvchi butunlay o\'chiriladi.',
-      okText: 'Ha, butunlay o\'chirish',
-      cancelText: 'Bekor qilish',
-      okType: 'danger',
-      icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
-      onOk: async () => {
-        try {
-          await dispatch(hardDeleteUser(id)).unwrap();
-          message.success('Foydalanuvchi butunlay o\'chirildi');
-        } catch (error) {
-          message.error('Foydalanuvchini o\'chirishda xatolik yuz berdi');
-        }
-      },
-    });
+    setSelectedUserId(id);
+    setHardDeleteModalOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (userToDelete) {
-      try {
-        await dispatch(softDeleteUser(userToDelete)).unwrap();
-        message.success('Foydalanuvchi muvaffaqiyatli o\'chirildi');
-      } catch (error) {
-        message.error('Foydalanuvchini o\'chirishda xatolik yuz berdi');
-      }
+    if (!selectedUserId) return;
+    try {
+      await dispatch(softDeleteUser(selectedUserId)).unwrap();
+      message.success('Foydalanuvchi muvaffaqiyatli o\'chirildi');
+      dispatch(fetchUsers());
+      dispatch(fetchDeletedUsers());
+    } catch (error) {
+      message.error('Foydalanuvchini o\'chirishda xatolik yuz berdi');
     }
     setDeleteModalOpen(false);
-    setUserToDelete(null);
+    setSelectedUserId(null);
+  };
+
+  const handleRestoreConfirm = async () => {
+    if (!selectedUserId) return;
+    try {
+      await dispatch(restoreUser(selectedUserId)).unwrap();
+      message.success('Foydalanuvchi muvaffaqiyatli tiklandi');
+      dispatch(fetchUsers());
+      dispatch(fetchDeletedUsers());
+    } catch (error) {
+      message.error('Foydalanuvchini tiklashda xatolik yuz berdi');
+    }
+    setRestoreModalOpen(false);
+    setSelectedUserId(null);
+  };
+
+  const handleHardDeleteConfirm = async () => {
+    if (!selectedUserId) return;
+    try {
+      await dispatch(hardDeleteUser(selectedUserId)).unwrap();
+      message.success('Foydalanuvchi butunlay o\'chirildi');
+      dispatch(fetchDeletedUsers());
+    } catch (error) {
+      message.error('Foydalanuvchini o\'chirishda xatolik yuz berdi');
+    }
+    setHardDeleteModalOpen(false);
+    setSelectedUserId(null);
   };
 
   const handleModalOk = async () => {
@@ -427,16 +366,101 @@ const Users: React.FC = () => {
         </Form>
       </Modal>
       
-      <DeleteModal
-        isOpen={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setUserToDelete(null);
-        }}
-        onConfirm={handleDeleteConfirm}
+      {/* Soft Delete Confirmation Modal */}
+      <Modal
         title="Foydalanuvchini o'chirish"
-        message="Ushbu foydalanuvchini o'chirmoqchimisiz? U o'chirilganlar ro'yxatiga ko'chiriladi."
-      />
+        open={deleteModalOpen}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setSelectedUserId(null);
+        }}
+        footer={[
+          <Button 
+            key="cancel" 
+            onClick={() => {
+              setDeleteModalOpen(false);
+              setSelectedUserId(null);
+            }}
+          >
+            Bekor qilish
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            danger
+            onClick={handleDeleteConfirm}
+          >
+            O'chirish
+          </Button>,
+        ]}
+      >
+        <p>Haqiqatan ham bu foydalanuvchini o'chirmoqchimisiz? U o'chirilganlar ro'yxatiga ko'chiriladi.</p>
+      </Modal>
+
+      {/* Restore Confirmation Modal */}
+      <Modal
+        title="Foydalanuvchini qayta tiklash"
+        open={restoreModalOpen}
+        onCancel={() => {
+          setRestoreModalOpen(false);
+          setSelectedUserId(null);
+        }}
+        footer={[
+          <Button 
+            key="cancel" 
+            onClick={() => {
+              setRestoreModalOpen(false);
+              setSelectedUserId(null);
+            }}
+          >
+            Bekor qilish
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            className="bg-green-600 hover:bg-green-700"
+            onClick={handleRestoreConfirm}
+          >
+            Tiklash
+          </Button>,
+        ]}
+      >
+        <p>Haqiqatan ham bu foydalanuvchini qayta tiklamoqchimisiz? U faol foydalanuvchilar ro'yxatiga qaytariladi.</p>
+      </Modal>
+
+      {/* Hard Delete Confirmation Modal */}
+      <Modal
+        title="Foydalanuvchini butunlay o'chirish"
+        open={hardDeleteModalOpen}
+        onCancel={() => {
+          setHardDeleteModalOpen(false);
+          setSelectedUserId(null);
+        }}
+        footer={[
+          <Button 
+            key="cancel" 
+            onClick={() => {
+              setHardDeleteModalOpen(false);
+              setSelectedUserId(null);
+            }}
+          >
+            Bekor qilish
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            danger
+            onClick={handleHardDeleteConfirm}
+          >
+            Butunlay o'chirish
+          </Button>,
+        ]}
+      >
+        <div>
+          <p className="text-red-600 font-medium mb-2">Diqqat!</p>
+          <p>Bu amalni ortga qaytarib bo'lmaydi. Foydalanuvchi tizimdan butunlay o'chiriladi.</p>
+        </div>
+      </Modal>
     </div>
   );
 };

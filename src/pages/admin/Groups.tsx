@@ -25,6 +25,10 @@ const Groups: React.FC = () => {
   const [deletedGroups, setDeletedGroups] = useState<Group[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [restoreModalOpen, setRestoreModalOpen] = useState(false);
+  const [hardDeleteModalOpen, setHardDeleteModalOpen] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
   useEffect(() => {
     dispatch(fetchAllGroups());
@@ -44,7 +48,7 @@ const Groups: React.FC = () => {
   const fetchDeletedGroups = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('https://api.lms.itechacademy.uz/api/groups/admin/deleted');
+      const response = await axios.get('http://localhost:8081/api/groups/admin/deleted');
       setDeletedGroups(response.data);
     } catch (error) {
       message.error('O\'chirilgan guruhlarni yuklashda xatolik yuz berdi');
@@ -120,36 +124,60 @@ const Groups: React.FC = () => {
   //   setIsShowStudentsModalVisible(true);
   // };
 
-  const handleSoftDelete = async (id: number) => {
+  const handleSoftDelete = (id: number) => {
+    setSelectedGroupId(id);
+    setDeleteModalOpen(true);
+  };
+
+  const handleRestore = (id: number) => {
+    setSelectedGroupId(id);
+    setRestoreModalOpen(true);
+  };
+
+  const handleHardDelete = (id: number) => {
+    setSelectedGroupId(id);
+    setHardDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedGroupId) return;
     try {
-      await axios.put(`https://api.lms.itechacademy.uz/api/groups/${id}/soft-delete`);
+      await axios.put(`http://localhost:8081/api/groups/${selectedGroupId}/soft-delete`);
       message.success('Guruh muvaffaqiyatli o\'chirildi');
       dispatch(fetchAllGroups());
       fetchDeletedGroups();
     } catch (error) {
       message.error('Guruhni o\'chirishda xatolik yuz berdi');
     }
+    setDeleteModalOpen(false);
+    setSelectedGroupId(null);
   };
 
-  const handleRestore = async (id: number) => {
+  const handleRestoreConfirm = async () => {
+    if (!selectedGroupId) return;
     try {
-      await axios.put(`https://api.lms.itechacademy.uz/api/groups/${id}/restore`);
+      await axios.put(`http://localhost:8081/api/groups/${selectedGroupId}/restore`);
       message.success('Guruh muvaffaqiyatli tiklandi');
       dispatch(fetchAllGroups());
       fetchDeletedGroups();
     } catch (error) {
       message.error('Guruhni tiklashda xatolik yuz berdi');
     }
+    setRestoreModalOpen(false);
+    setSelectedGroupId(null);
   };
 
-  const handleHardDelete = async (id: number) => {
+  const handleHardDeleteConfirm = async () => {
+    if (!selectedGroupId) return;
     try {
-      await axios.delete(`/api/groups/${id}`);
+      await axios.delete(`http://localhost:8081/api/groups/${selectedGroupId}`);
       message.success('Guruh butunlay o\'chirildi');
       fetchDeletedGroups();
     } catch (error) {
       message.error('Guruhni o\'chirishda xatolik yuz berdi');
     }
+    setHardDeleteModalOpen(false);
+    setSelectedGroupId(null);
   };
 
   const columns = [
@@ -398,6 +426,99 @@ const Groups: React.FC = () => {
           rowKey="id"
           pagination={false}
         />
+      </Modal>
+
+      <Modal
+        title="Guruhni o'chirish"
+        open={deleteModalOpen}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setSelectedGroupId(null);
+        }}
+        footer={[
+          <Button 
+            key="cancel" 
+            onClick={() => {
+              setDeleteModalOpen(false);
+              setSelectedGroupId(null);
+            }}
+          >
+            Bekor qilish
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            danger
+            onClick={handleDeleteConfirm}
+          >
+            O'chirish
+          </Button>,
+        ]}
+      >
+        <p>Haqiqatan ham bu guruhni o'chirmoqchimisiz? U o'chirilganlar ro'yxatiga ko'chiriladi.</p>
+      </Modal>
+
+      <Modal
+        title="Guruhni qayta tiklash"
+        open={restoreModalOpen}
+        onCancel={() => {
+          setRestoreModalOpen(false);
+          setSelectedGroupId(null);
+        }}
+        footer={[
+          <Button 
+            key="cancel" 
+            onClick={() => {
+              setRestoreModalOpen(false);
+              setSelectedGroupId(null);
+            }}
+          >
+            Bekor qilish
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            className="bg-green-600 hover:bg-green-700"
+            onClick={handleRestoreConfirm}
+          >
+            Tiklash
+          </Button>,
+        ]}
+      >
+        <p>Haqiqatan ham bu guruhni qayta tiklamoqchimisiz? U faol guruhlar ro'yxatiga qaytariladi.</p>
+      </Modal>
+
+      <Modal
+        title="Guruhni butunlay o'chirish"
+        open={hardDeleteModalOpen}
+        onCancel={() => {
+          setHardDeleteModalOpen(false);
+          setSelectedGroupId(null);
+        }}
+        footer={[
+          <Button 
+            key="cancel" 
+            onClick={() => {
+              setHardDeleteModalOpen(false);
+              setSelectedGroupId(null);
+            }}
+          >
+            Bekor qilish
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            danger
+            onClick={handleHardDeleteConfirm}
+          >
+            Butunlay o'chirish
+          </Button>,
+        ]}
+      >
+        <div>
+          <p className="text-red-600 font-medium mb-2">Diqqat!</p>
+          <p>Bu amalni ortga qaytarib bo'lmaydi. Guruh tizimdan butunlay o'chiriladi.</p>
+        </div>
       </Modal>
     </div>
   );
