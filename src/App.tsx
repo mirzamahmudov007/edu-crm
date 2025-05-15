@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { App as AntApp } from 'antd';
 import { useSelector } from 'react-redux';
@@ -25,12 +25,18 @@ import { PrivateRoute } from './components/PrivateRoute';
 
 import './index.css'
 import Dashboard from './pages/admin/Dashboard';
+
 // Error Boundary Component
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode }) {
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
@@ -62,9 +68,9 @@ const App: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
 
   return (
-    <AntApp>
-      <ErrorBoundary>
-        <Router>
+    <ErrorBoundary>
+      <Router>
+        <AntApp>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
@@ -130,9 +136,9 @@ const App: React.FC = () => {
               )}
             </Route>
           </Routes>
-        </Router>
-      </ErrorBoundary>
-    </AntApp>
+        </AntApp>
+      </Router>
+    </ErrorBoundary>
   );
 };
 

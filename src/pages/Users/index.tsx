@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { fetchUsers, createUser, updateUser, deleteUser, User } from '../../store/usersSlice';
+import { fetchUsers, createUser, updateUser, User } from '../../store/usersSlice';
 
 const { Option } = Select;
 
@@ -33,14 +33,14 @@ const Users: React.FC = () => {
     setIsModalVisible(true);
   };
 
-  const handleDeleteUser = async (id: number) => {
-    try {
-      await dispatch(deleteUser(id)).unwrap();
-      message.success('User deleted successfully');
-    } catch (error) {
-      message.error('Failed to delete user');
-    }
-  };
+  // const handleDeleteUser = async (id: number) => {
+  //   try {
+  //     await dispatch(deleteUser(id)).unwrap();
+  //     message.success('User deleted successfully');
+  //   } catch (error) {
+  //     message.error('Failed to delete user');
+  //   }
+  // };
 
   const handleModalOk = async () => {
     try {
@@ -82,9 +82,9 @@ const Users: React.FC = () => {
           <Button type="link" onClick={() => handleEditUser(record)}>
             Edit
           </Button>
-          <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>
+          {/* <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>
             Delete
-          </Button>
+          </Button> */}
         </>
       ),
     },

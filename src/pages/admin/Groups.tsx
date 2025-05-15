@@ -1,32 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Modal, Form, Input, message, Select, Tabs, Tag } from 'antd';
-import { PlusOutlined} from '@ant-design/icons';
+import { Table, Button, Space, Modal, Form, Input, message, Select, Tabs } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UndoOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchAllGroups, createGroup, addStudentToGroup } from '../../store/groupsSlice';
 import { Group } from '../../store/groupsSlice';
 import { usersService } from '../../services/users.service';
-import { EyeOutlined, UserAddOutlined } from '@ant-design/icons';
-
+import axios from 'axios';
 
 const { Option } = Select;
 const { TabPane } = Tabs;
 
 const Groups: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { groups, status } = useSelector((state: RootState) => state.groups);
+  const { groups } = useSelector((state: RootState) => state.groups);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddStudentModalVisible, setIsAddStudentModalVisible] = useState(false);
   const [isShowStudentsModalVisible, setIsShowStudentsModalVisible] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [selectedGroup, _] = useState<Group | null>(null);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [form] = Form.useForm();
   const [addStudentForm] = Form.useForm();
   const [createStudentForm] = Form.useForm();
+  const [deletedGroups, setDeletedGroups] = useState<Group[]>([]);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     dispatch(fetchAllGroups());
     fetchTeachers();
+    fetchDeletedGroups();
   }, [dispatch]);
 
   const fetchTeachers = async () => {
@@ -35,6 +38,18 @@ const Groups: React.FC = () => {
       setTeachers(response);
     } catch (error) {
       message.error('Failed to fetch teachers');
+    }
+  };
+
+  const fetchDeletedGroups = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('http://localhost:8081/api/groups/admin/deleted');
+      setDeletedGroups(response.data);
+    } catch (error) {
+      message.error('O\'chirilgan guruhlarni yuklashda xatolik yuz berdi');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -100,66 +115,98 @@ const Groups: React.FC = () => {
     }
   };
 
-  const handleShowStudents = (group: Group) => {
-    setSelectedGroup(group);
-    setIsShowStudentsModalVisible(true);
+  // const handleShowStudents = (group: Group) => {
+  //   setSelectedGroup(group);
+  //   setIsShowStudentsModalVisible(true);
+  // };
+
+  const handleSoftDelete = async (id: number) => {
+    try {
+      await axios.put(`http://localhost:8081/api/groups/${id}/soft-delete`);
+      message.success('Guruh muvaffaqiyatli o\'chirildi');
+      dispatch(fetchAllGroups());
+      fetchDeletedGroups();
+    } catch (error) {
+      message.error('Guruhni o\'chirishda xatolik yuz berdi');
+    }
+  };
+
+  const handleRestore = async (id: number) => {
+    try {
+      await axios.put(`http://localhost:8081/api/groups/${id}/restore`);
+      message.success('Guruh muvaffaqiyatli tiklandi');
+      dispatch(fetchAllGroups());
+      fetchDeletedGroups();
+    } catch (error) {
+      message.error('Guruhni tiklashda xatolik yuz berdi');
+    }
+  };
+
+  const handleHardDelete = async (id: number) => {
+    try {
+      await axios.delete(`/api/groups/${id}`);
+      message.success('Guruh butunlay o\'chirildi');
+      fetchDeletedGroups();
+    } catch (error) {
+      message.error('Guruhni o\'chirishda xatolik yuz berdi');
+    }
   };
 
   const columns = [
     {
-      title: 'Name',
+      title: 'Nomi',
       dataIndex: 'name',
       key: 'name',
-      width: '25%',
     },
     {
-      title: 'Mentor',
-      dataIndex: ['teacher', 'fullName'],
+      title: 'O\'qituvchi',
+      dataIndex: 'teacher',
       key: 'teacher',
-      width: '15%',
+      render: (teacher: any) => teacher?.fullName || 'Belgilanmagan',
     },
     {
-      title: 'Members',
+      title: 'O\'quvchilar soni',
       dataIndex: 'students',
-      key: 'students',
+      key: 'studentsCount',
       render: (students: any[]) => students?.length || 0,
-      width: '10%',
-      align: 'center' as const,
     },
     {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: () => (
-        <Tag color="green">Active</Tag> 
-      ),
-      width: '10%',
-      align: 'center' as const,
-    },
-    {
-      title: 'Actions',
+      title: 'Amallar',
       key: 'actions',
       render: (_: any, record: Group) => (
         <Space>
-          <Button
-            type="text"
-            icon={<EyeOutlined />}
-            onClick={() => handleShowStudents(record)}
-          >
-          </Button>
-          <Button
-          type='text'
-            icon={<UserAddOutlined />}
-            onClick={() => {
-              setSelectedGroup(record);
-              setIsAddStudentModalVisible(true);
-            }}
-          >
-          </Button>
+          {!showDeleted ? (
+            <>
+              <Button
+                type="text"
+                icon={<EditOutlined />}
+                onClick={() => {/* Edit logic */}}
+              />
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleSoftDelete(record.id)}
+              />
+            </>
+          ) : (
+            <>
+              <Button
+                type="text"
+                className="text-green-600 hover:text-green-700"
+                icon={<UndoOutlined />}
+                onClick={() => handleRestore(record.id)}
+              />
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleHardDelete(record.id)}
+              />
+            </>
+          )}
         </Space>
       ),
-      width: '10%',
-      align: 'center' as const,
     },
   ];
 
@@ -177,52 +224,83 @@ const Groups: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', backgroundColor: '#fff' }}>
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <h2 className="text-2xl font-bold text-gray-800">Gruhlar</h2>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setIsModalVisible(true)}
-        >
-          Create Group
-        </Button>
+    <div className="p-6 bg-white">
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {showDeleted ? 'O\'chirilgan guruhlar' : 'Faol guruhlar'}
+          </h2>
+          <div className="flex gap-4">
+            <Button
+              type={showDeleted ? 'default' : 'primary'}
+              onClick={() => setShowDeleted(false)}
+            >
+              Faol guruhlar
+            </Button>
+            <Button
+              type={showDeleted ? 'primary' : 'default'}
+              danger={showDeleted}
+              onClick={() => setShowDeleted(true)}
+            >
+              O'chirilganlar
+            </Button>
+            {!showDeleted && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setIsModalVisible(true)}
+                className="bg-blue-600"
+              >
+                Yangi guruh
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={groups}
-        rowKey="id"
-        loading={status === 'loading'}
-        bordered
-        pagination={{
-          showSizeChanger: true,
-          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-          pageSizeOptions: ['10', '20', '50', '100'],
-          defaultPageSize: 10,
-        }}
-      />
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <Table
+          columns={columns}
+          dataSource={showDeleted ? deletedGroups : groups}
+          rowKey="id"
+          loading={loading}
+          bordered
+          pagination={{
+            showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            defaultPageSize: 10,
+          }}
+        />
+      </div>
 
       <Modal
-        title="Create Group"
+        title="Yangi guruh yaratish"
         open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
+        onCancel={() => {
+          setIsModalVisible(false);
+          form.resetFields();
+        }}
         footer={null}
       >
-        <Form form={form} onFinish={handleCreateGroup}>
+        <Form form={form} onFinish={handleCreateGroup} layout="vertical">
           <Form.Item
             name="name"
-            label="Group Name"
-            rules={[{ required: true, message: 'Please input group name!' }]}
+            label="Guruh nomi"
+            rules={[{ required: true, message: 'Guruh nomini kiriting!' }]}
           >
-            <Input />
+            <Input placeholder="Guruh nomini kiriting" />
           </Form.Item>
           <Form.Item
             name="teacherUsername"
-            label="Teacher"
-            rules={[{ required: true, message: 'Please select a teacher!' }]}
+            label="O'qituvchi"
+            rules={[{ required: true, message: 'O\'qituvchini tanlang!' }]}
           >
-            <Select placeholder="Select a teacher">
+            <Select
+              placeholder="O'qituvchini tanlang"
+              showSearch
+              optionFilterProp="children"
+            >
               {teachers.map(teacher => (
                 <Option key={teacher.username} value={teacher.username}>
                   {teacher.fullName} ({teacher.username})
@@ -230,10 +308,18 @@ const Groups: React.FC = () => {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Create
-            </Button>
+          <Form.Item className="mb-0 text-right">
+            <Space>
+              <Button onClick={() => {
+                setIsModalVisible(false);
+                form.resetFields();
+              }}>
+                Bekor qilish
+              </Button>
+              <Button type="primary" htmlType="submit" className="bg-blue-600">
+                Yaratish
+              </Button>
+            </Space>
           </Form.Item>
         </Form>
       </Modal>

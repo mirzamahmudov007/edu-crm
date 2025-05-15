@@ -37,15 +37,26 @@ interface Question {
   correctAnswer: string
 }
 
-const TestProgress: React.FC<{
+interface TestProgressProps {
   currentQuestion: number
   totalQuestions: number
   remainingTime: number
   onTimeUp: () => void
   isCorrect: boolean
-}> = ({ currentQuestion, totalQuestions, remainingTime, onTimeUp }) => {
+}
+
+const TestProgress: React.FC<TestProgressProps> = ({ currentQuestion, totalQuestions, remainingTime, onTimeUp }) => {
   const minutes = Math.floor(remainingTime / 60)
   const seconds = remainingTime % 60
+  const progress = (currentQuestion / totalQuestions) * 100
+
+  // Calculate time percentage for color change
+  const timePercentage = (remainingTime / (totalQuestions * 120)) * 100
+  const getTimeColor = () => {
+    if (timePercentage > 50) return 'text-green-600'
+    if (timePercentage > 25) return 'text-orange-500'
+    return 'text-red-600'
+  }
 
   useEffect(() => {
     if (remainingTime <= 0) {
@@ -54,26 +65,52 @@ const TestProgress: React.FC<{
   }, [remainingTime, onTimeUp])
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-purple-600">
-            Question {currentQuestion}/{totalQuestions}
-          </span>
-          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
-              style={{ width: `${(currentQuestion / totalQuestions) * 100}%` }}
-            ></div>
+    <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+      <div className="flex flex-col space-y-4">
+        {/* Progress Section */}
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-gray-700">
+              Savol {currentQuestion} / {totalQuestions}
+            </span>
+            <div className="flex-1 h-2 w-32 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300 ease-in-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-orange-500" />
-          <span
-            className={`font-mono font-bold ${remainingTime < 60 ? "text-red-500 animate-pulse" : "text-gray-700"}`}
-          >
-            {minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
-          </span>
+
+        {/* Timer Section */}
+        <div className="flex items-center justify-center">
+          <div className={`flex items-center gap-2 ${getTimeColor()} transition-colors duration-300`}>
+            <Clock className={`w-5 h-5 ${remainingTime < 60 ? 'animate-pulse' : ''}`} />
+            <div className="font-mono text-2xl font-bold tracking-wider">
+              {minutes.toString().padStart(2, "0")}
+              <span className={`mx-1 ${remainingTime < 60 ? 'animate-pulse' : ''}`}>:</span>
+              {seconds.toString().padStart(2, "0")}
+            </div>
+          </div>
+        </div>
+
+        {/* Warning Message */}
+        {remainingTime < 60 && (
+          <div className="flex items-center justify-center gap-2 text-red-500 animate-pulse">
+            <AlertTriangle className="w-4 h-4" />
+            <span className="text-sm font-medium">Vaqt tugashiga oz qoldi!</span>
+          </div>
+        )}
+
+        {/* Progress Bar */}
+        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full transition-all duration-300 ease-in-out ${
+              timePercentage > 50 ? 'bg-green-500' :
+              timePercentage > 25 ? 'bg-orange-500' : 'bg-red-500'
+            }`}
+            style={{ width: `${timePercentage}%` }}
+          />
         </div>
       </div>
     </div>
