@@ -44,7 +44,7 @@ const Groups: React.FC = () => {
   const fetchDeletedGroups = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8081/api/groups/admin/deleted');
+      const response = await axios.get('https://api.lms.itechacademy.uz/api/groups/admin/deleted');
       setDeletedGroups(response.data);
     } catch (error) {
       message.error('O\'chirilgan guruhlarni yuklashda xatolik yuz berdi');
@@ -122,7 +122,7 @@ const Groups: React.FC = () => {
 
   const handleSoftDelete = async (id: number) => {
     try {
-      await axios.put(`http://localhost:8081/api/groups/${id}/soft-delete`);
+      await axios.put(`https://api.lms.itechacademy.uz/api/groups/${id}/soft-delete`);
       message.success('Guruh muvaffaqiyatli o\'chirildi');
       dispatch(fetchAllGroups());
       fetchDeletedGroups();
@@ -133,7 +133,7 @@ const Groups: React.FC = () => {
 
   const handleRestore = async (id: number) => {
     try {
-      await axios.put(`http://localhost:8081/api/groups/${id}/restore`);
+      await axios.put(`https://api.lms.itechacademy.uz/api/groups/${id}/restore`);
       message.success('Guruh muvaffaqiyatli tiklandi');
       dispatch(fetchAllGroups());
       fetchDeletedGroups();
