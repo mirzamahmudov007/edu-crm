@@ -59,6 +59,7 @@ export const addQuestion = async (
   data: {
     text: string
     correctAnswer: string
+    options?: string[]
   },
 ) => {
   const response = await api.post(`/questions/${testId}`, data)
@@ -121,6 +122,29 @@ export const getDetailedTestResult = async (testResultId: number) => {
   return response.data
 }
 
+export const getTestById = async (testId: number) => {
+  const response = await api.get<Test>(`/tests/details/${testId}`);
+  return response.data;
+};
+
+export const updateTest = async (testId: number, testData: Partial<Test>) => {
+  const response = await api.put<Test>(`/tests/${testId}`, testData);
+  return response.data;
+};
+
+export const updateQuestion = async (questionId: number, data: {
+  text: string
+  options: string[]
+  correctAnswer: string
+}) => {
+  const response = await api.put(`/questions/${questionId}`, data)
+  return response.data
+}
+
+export const deleteQuestion = async (questionId: number) => {
+  await api.delete(`/questions/${questionId}`);
+};
+
 // Also export as default object for backward compatibility
 export const testsService = {
   getAllTests,
@@ -131,14 +155,18 @@ export const testsService = {
   createTest,
   deleteTest,
   addQuestion,
-  addQuestionOption, // Added new function
-  getQuestionOptions, // Added new function
+  addQuestionOption,
+  getQuestionOptions,
   getTestQuestions,
   submitTest,
   getTestResults,
   getStudentResults,
   getDetailedTestResult,
   getTestResultDetails,
+  getTestById,
+  updateTest,
+  updateQuestion,
+  deleteQuestion,
 }
 
 export default testsService

@@ -25,6 +25,7 @@ import { PrivateRoute } from './components/PrivateRoute';
 
 import './index.css'
 import Dashboard from './pages/admin/Dashboard';
+import EditTest from './pages/admin/EditTest';
 
 // Error Boundary Component
 interface ErrorBoundaryState {
@@ -93,6 +94,7 @@ const App: React.FC = () => {
               <Route path="users" element={<AdminUsers />} />
               <Route path="groups" element={<AdminGroups />} />
               <Route path="tests" element={<AdminTests />} />
+              <Route path="tests/:testId/edit" element={<EditTest />} />
               <Route path="settings" element={<Profile />} />
             </Route>
 
@@ -117,6 +119,7 @@ const App: React.FC = () => {
                   <Route path="groups" element={<Groups />} />
                   <Route path="tests" element={<AdminTests />} />
                   <Route path="tests/create" element={<CreateTest />} />
+                  <Route path="tests/:testId/edit" element={<EditTest />} />
                   <Route path="tests/:testId/results" element={<TestResults />} />
                   <Route path="teacher/results" element={<TeacherResults />} />
                   <Route path="teacher/results/:resultId" element={<TeacherResultDetails />} />

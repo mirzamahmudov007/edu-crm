@@ -19,7 +19,7 @@ const AdminTests: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [form] = Form.useForm();
-  const [editingTest, setEditingTest] = useState<Test | null>(null);
+  const [editingTest, __] = useState<Test | null>(null);
   const [filters, setFilters] = useState<TestFilters>({});
   const [groups, setGroups] = useState<Group[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -78,7 +78,7 @@ const AdminTests: React.FC = () => {
 
   const exportTestToWord = async (testId: number) => {
     try {
-      const response = await fetch(`https://api.lms.itechacademy.uz/api/tests/export/${testId}/word`, {
+      const response = await fetch(`http://localhost:8081/api/tests/export/${testId}/word`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -108,7 +108,7 @@ const AdminTests: React.FC = () => {
   const fetchTestResults = async (testId: number) => {
     try {
       setLoadingResults(true);
-      const response = await fetch(`https://api.lms.itechacademy.uz/api/test-results/${testId}`, {
+      const response = await fetch(`http://localhost:8081/api/test-results/${testId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -159,13 +159,11 @@ const AdminTests: React.FC = () => {
   };
 
   const handleEdit = (test: Test) => {
-    setEditingTest(test);
-    form.setFieldsValue({
-      ...test,
-      startTime: test.startTime ? dayjs(test.startTime).format('YYYY-MM-DDTHH:mm') : undefined,
-      endTime: test.endTime ? dayjs(test.endTime).format('YYYY-MM-DDTHH:mm') : undefined,
-    });
-    setIsModalVisible(true);
+    if (user.role === 'ADMIN') {
+      navigate(`/admin/tests/${test.id}/edit`);
+    } else {
+      navigate(`/tests/${test.id}/edit`);
+    }
   };
 
   const handleDelete = async (id: number) => {
