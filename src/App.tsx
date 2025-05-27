@@ -21,7 +21,7 @@ import TeacherResultDetails from './pages/TeacherResultDetails';
 import AdminUsers from './pages/admin/Users';
 import AdminGroups from './pages/admin/Groups';
 import AdminTests from './pages/admin/Tests';
-import { PrivateRoute } from './components/PrivateRoute';
+import PrivateRoute from './components/PrivateRoute';
 
 import './index.css'
 import Dashboard from './pages/admin/Dashboard';

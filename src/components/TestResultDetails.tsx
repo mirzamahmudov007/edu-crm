@@ -1,133 +1,169 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, Typography, List, Tag, Spin, Alert, Divider } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { getDetailedTestResult } from '../services/tests.service';
+import { testResultService } from '../services/api';
+import {
+    Box,
+    Typography,
+    CircularProgress,
+    Alert,
+    Paper,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Button,
+} from '@mui/material';
+import { Download as DownloadIcon } from '@mui/icons-material';
 
-const { Title, Text, Paragraph } = Typography;
-
-interface QuestionResult {
-  questionId: number;
-  questionText: string;
-  studentAnswer: string;
-  correctAnswer: string;
-  isCorrect: boolean;
-}
-
-interface TestResultDetails {
-  testResult: {
+interface TestResult {
     id: number;
     test: {
-      title: string;
-      description: string;
+        id: number;
+        title: string;
+        description: string;
+    };
+    student: {
+        id: number;
+        username: string;
+        fullName: string;
     };
     score: number;
-    submissionTime: string | null;
-  };
-  questionResults: QuestionResult[];
+    totalQuestions: number;
+    submissionTime: string;
+    answers: {
+        questionId: number;
+        questionText: string;
+        selectedOption: number;
+        correctOption: number;
+        options: string[];
+    }[];
 }
 
 const TestResultDetails: React.FC = () => {
-  const { resultId } = useParams<{ resultId: string }>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [resultDetails, setResultDetails] = useState<TestResultDetails | null>(null);
+    const { testAccessId } = useParams<{ testAccessId: string }>();
+    const [result, setResult] = useState<TestResult | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchResultDetails = async () => {
-      try {
-        setLoading(true);
-        if (!resultId) {
-          throw new Error('Test result ID is missing');
+    useEffect(() => {
+        const fetchResult = async () => {
+            try {
+                const response = await testResultService.getTestResult(testAccessId!);
+                setResult(response.data);
+            } catch (err) {
+                setError('Failed to load test result. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchResult();
+    }, [testAccessId]);
+
+    const handleDownload = async () => {
+        try {
+            const response = await testResultService.exportStudentTestToWord(testAccessId!);
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `test_result_${testAccessId}.docx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            setError('Failed to download test result. Please try again.');
         }
-        const data = await getDetailedTestResult(parseInt(resultId));
-        setResultDetails(data);
-      } catch (err) {
-        setError('Failed to load test result details');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
     };
 
-    fetchResultDetails();
-  }, [resultId]);
+    if (loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+                <CircularProgress />
+            </Box>
+        );
+    }
 
-  if (loading) {
+    if (error) {
+        return (
+            <Box p={3}>
+                <Alert severity="error">{error}</Alert>
+            </Box>
+        );
+    }
+
+    if (!result) {
+        return (
+            <Box p={3}>
+                <Alert severity="warning">No test result found.</Alert>
+            </Box>
+        );
+    }
+
+    const score = (result.score / result.totalQuestions) * 100;
+
     return (
-      <div className="flex justify-center items-center h-64">
-        <Spin size="large" />
-      </div>
+        <Box p={3}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                <Typography variant="h5">{result.test.title}</Typography>
+                <Button
+                    variant="contained"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownload}
+                >
+                    Download Result
+                </Button>
+            </Box>
+
+            <Box mb={3}>
+                <Typography variant="body1" gutterBottom>
+                    Student: {result.student.fullName}
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                    Submission Time: {new Date(result.submissionTime).toLocaleString()}
+                </Typography>
+                <Typography variant="h6" color={score >= 60 ? 'success.main' : 'error.main'}>
+                    Score: {score.toFixed(1)}%
+                </Typography>
+            </Box>
+
+            <TableContainer component={Paper}>
+                <Table>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Question</TableCell>
+                            <TableCell>Your Answer</TableCell>
+                            <TableCell>Correct Answer</TableCell>
+                            <TableCell>Status</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {result.answers.map((answer) => (
+                            <TableRow key={answer.questionId}>
+                                <TableCell>{answer.questionText}</TableCell>
+                                <TableCell>{answer.options[answer.selectedOption]}</TableCell>
+                                <TableCell>{answer.options[answer.correctOption]}</TableCell>
+                                <TableCell>
+                                    <Typography
+                                        color={
+                                            answer.selectedOption === answer.correctOption
+                                                ? 'success.main'
+                                                : 'error.main'
+                                        }
+                                    >
+                                        {answer.selectedOption === answer.correctOption
+                                            ? 'Correct'
+                                            : 'Incorrect'}
+                                    </Typography>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Box>
     );
-  }
-
-  if (error || !resultDetails) {
-    return (
-      <Alert
-        message="Error"
-        description={error || 'Failed to load test result details'}
-        type="error"
-        showIcon
-      />
-    );
-  }
-
-  const { testResult, questionResults } = resultDetails;
-  const correctAnswers = questionResults.filter(q => q.isCorrect).length;
-  const totalQuestions = questionResults.length;
-  const scorePercentage = Math.round((correctAnswers / totalQuestions) * 100);
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <Card className="mb-6">
-        <Title level={2}>{testResult.test.title}</Title>
-        <Paragraph>{testResult.test.description}</Paragraph>
-        <Divider />
-        <div className="flex justify-between items-center">
-          <div>
-            <Text strong>Score: </Text>
-            <Text>{correctAnswers} out of {totalQuestions} ({scorePercentage}%)</Text>
-          </div>
-          <div>
-            <Text strong>Submitted: </Text>
-            <Text>{testResult.submissionTime ? new Date(testResult.submissionTime).toLocaleString() : 'Not submitted'}</Text>
-          </div>
-        </div>
-      </Card>
-
-      <Card title="Question Results">
-        <List
-          dataSource={questionResults}
-          renderItem={(item, index) => (
-            <List.Item>
-              <div className="w-full">
-                <div className="flex items-center mb-2">
-                  <span className="mr-2 font-bold">Question {index + 1}:</span>
-                  {item.isCorrect ? (
-                    <Tag icon={<CheckCircleOutlined />} color="success">Correct</Tag>
-                  ) : (
-                    <Tag icon={<CloseCircleOutlined />} color="error">Incorrect</Tag>
-                  )}
-                </div>
-                <Paragraph className="mb-2">{item.questionText}</Paragraph>
-                <div className="ml-4">
-                  <Text strong>Your answer: </Text>
-                  <Text type={item.isCorrect ? "success" : "danger"}>{item.studentAnswer}</Text>
-                  {!item.isCorrect && (
-                    <>
-                      <br />
-                      <Text strong>Correct answer: </Text>
-                      <Text type="success">{item.correctAnswer}</Text>
-                    </>
-                  )}
-                </div>
-              </div>
-            </List.Item>
-          )}
-        />
-      </Card>
-    </div>
-  );
 };
 
 export default TestResultDetails; 

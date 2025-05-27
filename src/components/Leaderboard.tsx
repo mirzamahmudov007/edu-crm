@@ -1,108 +1,156 @@
-import React from 'react';
-import { Table, Card, Avatar, Tag } from 'antd';
-import { TrophyOutlined, UserOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { testResultService } from '../services/api';
+import {
+    Box,
+    Typography,
+    CircularProgress,
+    Alert,
+    Paper,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Chip,
+} from '@mui/material';
+import { EmojiEvents as TrophyIcon } from '@mui/icons-material';
 
 interface LeaderboardEntry {
-  id: number;
-  rank: number;
-  studentName: string;
-  totalPoints: number;
-  testsCompleted: number;
-  averageScore: number;
-  streak: number;
+    studentId: number;
+    studentName: string;
+    totalTests: number;
+    averageScore: number;
+    highestScore: number;
+    completedTests: number;
 }
 
-interface LeaderboardProps {
-  data: LeaderboardEntry[];
-  loading?: boolean;
-}
+const Leaderboard: React.FC = () => {
+    const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ data, loading }) => {
-  const columns = [
-    {
-      title: 'O\'rin',
-      dataIndex: 'rank',
-      key: 'rank',
-      width: 80,
-      render: (rank: number) => {
-        let color = '';
-        switch (rank) {
-          case 1:
-            color = '#ffd700'; // Gold
-            break;
-          case 2:
-            color = '#c0c0c0'; // Silver
-            break;
-          case 3:
-            color = '#cd7f32'; // Bronze
-            break;
-          default:
-            color = '#1890ff';
-        }
+    useEffect(() => {
+        const fetchLeaderboard = async () => {
+            try {
+                const response = await testResultService.getStudentResults();
+                const results = response.data;
+
+                // Process results to create leaderboard entries
+                const studentMap = new Map<number, LeaderboardEntry>();
+
+                results.forEach((result: any) => {
+                    const studentId = result.student.id;
+                    const studentName = result.student.fullName;
+                    const score = (result.score / result.totalQuestions) * 100;
+
+                    if (!studentMap.has(studentId)) {
+                        studentMap.set(studentId, {
+                            studentId,
+                            studentName,
+                            totalTests: 1,
+                            averageScore: score,
+                            highestScore: score,
+                            completedTests: result.submissionTime ? 1 : 0,
+                        });
+                    } else {
+                        const entry = studentMap.get(studentId)!;
+                        entry.totalTests++;
+                        entry.averageScore = (entry.averageScore * (entry.totalTests - 1) + score) / entry.totalTests;
+                        entry.highestScore = Math.max(entry.highestScore, score);
+                        if (result.submissionTime) {
+                            entry.completedTests++;
+                        }
+                    }
+                });
+
+                // Convert map to array and sort by average score
+                const leaderboardArray = Array.from(studentMap.values()).sort(
+                    (a, b) => b.averageScore - a.averageScore
+                );
+
+                setLeaderboard(leaderboardArray);
+            } catch (err) {
+                setError('Failed to load leaderboard. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchLeaderboard();
+    }, []);
+
+    if (loading) {
         return (
-          <Tag color={color} style={{ margin: 0 }}>
-            {rank}
-          </Tag>
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+                <CircularProgress />
+            </Box>
         );
-      },
-    },
-    {
-      title: 'Talaba',
-      dataIndex: 'studentName',
-      key: 'studentName',
-      render: (text: string, record: LeaderboardEntry) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Avatar icon={<UserOutlined />} />
-          <span>{text}</span>
-          {record.rank <= 3 && (
-            <TrophyOutlined style={{ 
-              color: record.rank === 1 ? '#ffd700' : 
-                     record.rank === 2 ? '#c0c0c0' : '#cd7f32' 
-            }} />
-          )}
-        </div>
-      ),
-    },
-    {
-      title: 'Jami Ball',
-      dataIndex: 'totalPoints',
-      key: 'totalPoints',
-      sorter: (a: LeaderboardEntry, b: LeaderboardEntry) => a.totalPoints - b.totalPoints,
-    },
-    {
-      title: 'Testlar',
-      dataIndex: 'testsCompleted',
-      key: 'testsCompleted',
-    },
-    {
-      title: 'O\'rtacha Ball',
-      dataIndex: 'averageScore',
-      key: 'averageScore',
-      render: (score: number) => `${score}%`,
-    },
-    {
-      title: 'Seriya',
-      dataIndex: 'streak',
-      key: 'streak',
-      render: (streak: number) => (
-        <Tag color={streak >= 5 ? 'success' : streak >= 3 ? 'warning' : 'default'}>
-          {streak} kun
-        </Tag>
-      ),
-    },
-  ];
+    }
 
-  return (
-    <Card title="Reyting Jadvali" loading={loading}>
-      <Table
-        columns={columns}
-        dataSource={data}
-        rowKey="id"
-        pagination={false}
-        size="middle"
-      />
-    </Card>
-  );
+    if (error) {
+        return (
+            <Box p={3}>
+                <Alert severity="error">{error}</Alert>
+            </Box>
+        );
+    }
+
+    return (
+        <Box p={3}>
+            <Box display="flex" alignItems="center" mb={3}>
+                <TrophyIcon sx={{ fontSize: 32, mr: 1, color: 'gold' }} />
+                <Typography variant="h5">Leaderboard</Typography>
+            </Box>
+
+            <TableContainer component={Paper}>
+                <Table>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Rank</TableCell>
+                            <TableCell>Student</TableCell>
+                            <TableCell align="right">Average Score</TableCell>
+                            <TableCell align="right">Highest Score</TableCell>
+                            <TableCell align="right">Completed Tests</TableCell>
+                            <TableCell align="right">Total Tests</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {leaderboard.map((entry, index) => (
+                            <TableRow key={entry.studentId}>
+                                <TableCell>
+                                    {index < 3 ? (
+                                        <Chip
+                                            label={`#${index + 1}`}
+                                            color={
+                                                index === 0
+                                                    ? 'warning'
+                                                    : index === 1
+                                                    ? 'default'
+                                                    : 'primary'
+                                            }
+                                            size="small"
+                                        />
+                                    ) : (
+                                        `#${index + 1}`
+                                    )}
+                                </TableCell>
+                                <TableCell>{entry.studentName}</TableCell>
+                                <TableCell align="right">
+                                    {entry.averageScore.toFixed(1)}%
+                                </TableCell>
+                                <TableCell align="right">
+                                    {entry.highestScore.toFixed(1)}%
+                                </TableCell>
+                                <TableCell align="right">{entry.completedTests}</TableCell>
+                                <TableCell align="right">{entry.totalTests}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Box>
+    );
 };
 
 export default Leaderboard; 

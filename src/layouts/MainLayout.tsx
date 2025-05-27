@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, theme, Drawer, Button } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
@@ -14,14 +13,8 @@ import {
   MenuOutlined,
 } from '@ant-design/icons';
 
-const { Header, Content, Sider } = Layout;
-
 const MainLayout: React.FC = () => {
-  const {
-    token: { colorBgContainer },
-  } = theme.useToken();
-
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, _] = useState(false);
   const [mobileView, setMobileView] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   
@@ -101,142 +94,108 @@ const MainLayout: React.FC = () => {
   const currentMenuItem = menuItems.find(item => item.key === currentPath);
 
   const siderContent = (
-    <>
-      <div style={{ 
-        padding: '16px 0', 
-        borderBottom: '1px solid #f0f0f0',
-        margin: '0 16px 16px',
-        display: 'flex',
-        alignItems: 'center'
-      }}>
-        <div style={{ 
-          fontSize: '18px', 
-          fontWeight: 'bold',
-          color: '#ff6b00'
-        }}>
-          <span style={{ color: '#333' }}>iTech</span> Academy
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b border-gray-200">
+        <div className="text-xl font-bold">
+          <span className="text-gray-800">iTech</span>
+          <span className="text-orange-500"> Academy</span>
         </div>
       </div>
-      <Menu
-        mode="inline"
-        selectedKeys={[currentPath]}
-        style={{ 
-          border: 'none',
-        }}
-        items={menuItems.map(item => ({
-          ...item,
-          style: currentPath === item.key ? {
-            backgroundColor: 'rgba(0, 128, 0, 0.1)',
-            color: 'green',
-            fontWeight: 'bold',
-            borderLeft: '3px solid green'
-          } : {}
-        }))}
-        onClick={({ key }) => {
-          if (key !== 'logout') {
-            navigate(key);
-          }
-          if (mobileView) {
-            setDrawerVisible(false);
-          }
-        }}
-      />
-    </>
+      <nav className="flex-1 px-2 py-4 space-y-1">
+        {menuItems.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => {
+              if (item.onClick) {
+                item.onClick();
+              } else {
+                navigate(item.key);
+                if (mobileView) {
+                  setDrawerVisible(false);
+                }
+              }
+            }}
+            className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+              currentPath === item.key
+                ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <span className="mr-3">{item.icon}</span>
+            {item.label}
+          </button>
+        ))}
+      </nav>
+    </div>
   );
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <div className="min-h-screen bg-gray-50">
       {/* Mobile Drawer */}
       {mobileView && (
-        <Drawer
-          title="Menu"
-          placement="left"
-          closable={true}
-          onClose={() => setDrawerVisible(false)}
-          visible={drawerVisible}
-          width={250}
-          bodyStyle={{ padding: 0 }}
+        <div
+          className={`fixed inset-0 z-40 transition-opacity duration-300 ${
+            drawerVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         >
-          {siderContent}
-        </Drawer>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={() => setDrawerVisible(false)}
+          />
+          <div
+            className={`fixed inset-y-0 left-0 w-64 bg-white shadow-lg transform transition-transform duration-300 ${
+              drawerVisible ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
+            {siderContent}
+          </div>
+        </div>
       )}
-      
-      {/* Desktop Sider */}
+
+      {/* Desktop Sidebar */}
       {!mobileView && (
-        <Sider 
-          width={250} 
-          style={{ 
-            background: 'white',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-            zIndex: 10,
-            height: '100vh',
-            position: 'fixed',
-            left: 0,
-          }}
-          collapsed={collapsed}
-          onCollapse={(value) => setCollapsed(value)}
-          collapsible
-          breakpoint="md"
+        <div
+          className={`fixed inset-y-0 left-0 w-64 bg-white shadow-lg transition-all duration-300 ${
+            collapsed ? '-translate-x-48' : 'translate-x-0'
+          }`}
         >
           {siderContent}
-        </Sider>
+        </div>
       )}
-      
-      <Layout style={{ marginLeft: mobileView ? 0 : 250 }}>
-        <Header style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          background: 'white',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-          padding: '0 16px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 9,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            {mobileView && (
-              <Button 
-                type="text" 
-                icon={<MenuOutlined />} 
-                onClick={() => setDrawerVisible(true)}
-                style={{ marginRight: 16 }}
-              />
-            )}
-            <div style={{ fontSize: mobileView ? '16px' : '18px', color: '#333' }}>
-              {currentMenuItem?.label}
+
+      <div className={`${mobileView ? '' : 'ml-64'} transition-all duration-300`}>
+        {/* Header */}
+        <header className="sticky top-0 z-30 bg-white shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center">
+              {mobileView && (
+                <button
+                  onClick={() => setDrawerVisible(true)}
+                  className="p-2 text-gray-600 hover:text-gray-900 focus:outline-none"
+                >
+                  <MenuOutlined />
+                </button>
+              )}
+              <h1 className="ml-4 text-lg font-semibold text-gray-800">
+                {currentMenuItem?.label}
+              </h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold">
+                {user?.fullName?.charAt(0) || 'U'}
+              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ 
-              width: '32px', 
-              height: '32px', 
-              borderRadius: '50%', 
-              background: '#ccc',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 'bold'
-            }}>
-              {user?.fullName?.charAt(0) || 'U'}
-            </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="p-4 md:p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-h-[calc(100vh-8rem)]">
+            <Outlet />
           </div>
-        </Header>
-        <Content
-          style={{
-            margin: mobileView ? '16px 8px' : '24px 16px',
-            padding: mobileView ? '16px' : '24px',
-            background: colorBgContainer,
-            borderRadius: '4px',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-            minHeight: 'calc(100vh - 150px)',
-          }}
-        >
-          <Outlet />
-        </Content>
-      </Layout>
-    </Layout>
+        </main>
+      </div>
+    </div>
   );
 };
 

@@ -1,33 +1,25 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
+import { Navigate, useLocation } from 'react-router-dom';
 
 interface PrivateRouteProps {
-  children: React.ReactNode;
-  roles?: string[];
+    children: React.ReactNode;
+    requiredRoles?: string[];
 }
 
-export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, roles }) => {
-  const { token, user } = useSelector((state: RootState) => state.auth);
+const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiredRoles }) => {
+    const location = useLocation();
+    const token = localStorage.getItem('token');
+    const userRole = localStorage.getItem('userRole');
 
-  if (!token) {
-    return <Navigate to="/login" />;
-  }
-
-  if (roles && user && !roles.includes(user.role)) {
-    // Redirect to appropriate page based on user role
-    switch (user.role) {
-      case 'TEACHER':
-        return <Navigate to="/groups" />;
-      case 'STUDENT':
-        return <Navigate to="/student/tests" />;
-      case 'ADMIN':
-        return <Navigate to="/admin" />;
-      default:
-        return <Navigate to="/login" />;
+    if (!token) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
-  }
 
-  return <>{children}</>;
-}; 
+    if (requiredRoles && userRole && !requiredRoles.includes(userRole)) {
+        return <Navigate to="/unauthorized" replace />;
+    }
+
+    return <>{children}</>;
+};
+
+export default PrivateRoute; 
