@@ -11,6 +11,9 @@ export const MainLayout: React.FC<MainLayoutProps> = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Get user role from localStorage (or default to 'admin')
+ 
+
   // Check if we're on mobile
   useEffect(() => {
     const checkMobile = () => {

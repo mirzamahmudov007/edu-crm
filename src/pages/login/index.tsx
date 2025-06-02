@@ -34,6 +34,9 @@ const Login = () => {
       const response = await login(formData);
       // Store the token in localStorage or your preferred storage
       localStorage.setItem('token', response.token);
+      console.log(response.user.role);
+      
+      localStorage.setItem('role', response.user.role);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');

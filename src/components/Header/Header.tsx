@@ -7,13 +7,33 @@ import {
   RiUserLine,
   RiDashboard3Fill
 } from "react-icons/ri";
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/users': 'Foydalanuvchilar',
+  '/groups': 'Gruhlar',
+  '/tests': 'Testlar',
+  '/upload': 'Upload',
+};
+
+
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const location = useLocation();
+  const title = PAGE_TITLES[location.pathname] || 'Dashboard';
+  const navigate = useNavigate();
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    navigate('/login');
+  }
+  
 
   return (
     <header className="bg-gradient-to-r from-white/90 to-blue-50/60 backdrop-blur-xl border-b border-gray-100 h-16 md:h-20 px-4 md:px-8 flex items-center justify-between shadow-md">
@@ -31,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           <RiDashboard3Fill size={20} className="text-blue-400 md:hidden" />
           <RiDashboard3Fill size={22} className="text-blue-400 hidden md:block" />
           <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent tracking-wide">
-            Dashboard
+            {title}
           </h1>
         </div>
       </div>
@@ -71,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 Sozlamalar
               </button>
               <div className="border-t border-gray-100 my-1"></div>
-              <button className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+              <button className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 z-50" onClick={() => logout()}>
                 <RiLogoutBoxLine size={18} />
                 Chiqish
               </button>

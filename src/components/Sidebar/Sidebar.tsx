@@ -24,47 +24,51 @@ interface SidebarProps {
   collapsed: boolean;
 }
 
-const menuItems: MenuItem[] = [
-  { 
-    icon: <RiDashboard3Fill size={24} className="text-blue-400" />, 
-    label: "Dashboard", 
-    path: "/dashboard" 
-  },
-  { 
-    icon: <RiGroupFill size={24} className="text-emerald-400" />, 
-    label: "Foydalanuvchilar", 
-    path: "/users" 
-  },
-//   { 
-//     icon: <RiUserSettingsFill size={24} className="text-violet-400" />, 
-//     label: "O'qituvchilar", 
-//     path: "/teachers" 
-//   },
-  { 
-    icon: <RiTeamFill size={24} className="text-amber-400" />, 
-    label: "Gruhlar", 
-    path: "/groups" 
-  },
-  { 
-    icon: <RiFileListFill size={24} className="text-rose-400" />, 
-    label: "Testlar", 
-    path: "/tests" 
-  },
-  { 
-    icon: <RiUploadCloudFill size={24} className="text-cyan-400" />, 
-    label: "Upload", 
-    path: "/upload" 
-  },
-];
-
-const user: User = {
-  name: "Admin",
-  avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-};
-
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  // Menu items based on role
+  const role = localStorage.getItem('role')?.toLocaleLowerCase();
+  const menuItems: MenuItem[] = role === 'teacher'
+    ? [
+        {
+          icon: <RiDashboard3Fill size={24} className="text-blue-400" />, 
+          label: "Dashboard", 
+          path: "/dashboard"
+        }
+      ]
+    : [
+        {
+          icon: <RiDashboard3Fill size={24} className="text-blue-400" />, 
+          label: "Dashboard", 
+          path: "/dashboard"
+        },
+        {
+          icon: <RiGroupFill size={24} className="text-emerald-400" />, 
+          label: "Foydalanuvchilar", 
+          path: "/users"
+        },
+        {
+          icon: <RiTeamFill size={24} className="text-amber-400" />, 
+          label: "Gruhlar", 
+          path: "/groups"
+        },
+        {
+          icon: <RiFileListFill size={24} className="text-rose-400" />, 
+          label: "Testlar", 
+          path: "/tests"
+        },
+        {
+          icon: <RiUploadCloudFill size={24} className="text-cyan-400" />, 
+          label: "Upload", 
+          path: "/upload"
+        }
+      ];
+
+  const user: User = {
+    name: role === 'admin' ? 'Admin' : 'Teacher',
+    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+  };
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -81,7 +85,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
       {/* Top: Logo & Title */}
       <div className="flex items-center justify-center px-6 py-6 border-b border-gray-100">
         <div className="flex items-center gap-2">
-       
             {collapsed && (
             <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent tracking-wide">
               iTech

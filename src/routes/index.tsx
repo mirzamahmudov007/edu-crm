@@ -7,6 +7,43 @@ import Login from '../pages/login';
 import Users from '../pages/users';
 import Groups from '../pages/groups';
 
+// Get user role from localStorage (or default to 'admin')
+let role = 'admin';
+try {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (user && user.role) role = user.role;
+} catch {}
+
+const adminRoutes = [
+  {
+    path: 'dashboard',
+    element: <Dashboard/>,
+  },
+  {
+    path: 'users',
+    element: <Users/>,
+  },
+  {
+    path: 'groups',
+    element: <Groups/>,
+  },
+  {
+    path: 'tests',
+    element: <div>Tests Page</div>,
+  },
+  {
+    path: 'upload',
+    element: <div>Upload Page</div>,
+  },
+];
+
+const teacherRoutes = [
+  {
+    path: 'dashboard',
+    element: <Dashboard/>,
+  },
+];
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -25,28 +62,7 @@ const router = createBrowserRouter([
         </MainLayout>
       </PrivateRoute>
     ),
-    children: [
-      {
-        path: 'dashboard',
-        element: <Dashboard/>,
-      },
-      {
-        path: 'users',
-        element: <Users/>,
-      },
-      {
-        path: 'groups',
-        element: <Groups/>,
-      },
-      {
-        path: 'tests',
-        element: <div>Tests Page</div>,
-      },
-      {
-        path: 'upload',
-        element: <div>Upload Page</div>,
-      },
-    ],
+    children: role === 'teacher' ? teacherRoutes : adminRoutes,
   },
   {
     path: '*',
