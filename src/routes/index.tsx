@@ -5,6 +5,7 @@ import NotFound from '../pages/NotFound';
 import { MainLayout } from '../layouts/MainLayout';
 import Login from '../pages/login';
 import Users from '../pages/users';
+import Groups from '../pages/groups';
 
 const router = createBrowserRouter([
   {
@@ -35,7 +36,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'groups',
-        element: <div>Groups Page</div>,
+        element: <Groups/>,
       },
       {
         path: 'tests',

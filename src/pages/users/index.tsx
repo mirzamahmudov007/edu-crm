@@ -1,18 +1,55 @@
-import { useQuery } from '@tanstack/react-query';
-import { getUsers } from '../../services/userService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getUsers, deleteTeacher, deleteStudent, updateTeacher, updateStudent, createTeacher, createStudent } from '../../services/userService';
 import { format } from 'date-fns';
 import { RiEditLine, RiDeleteBinLine, RiUserLine, RiPhoneLine, RiShieldLine, RiTimeLine, RiAddLine } from 'react-icons/ri';
 import { EditTeacherModal } from '../../components/Modals/EditTeacherModal';
 import { EditStudentModal } from '../../components/Modals/EditStudentModal';
+import { CreateUserModal } from '../../components/Modals/CreateUserModal';
 import { useState } from 'react';
+import { DeleteConfirmationModal } from '../../components/Modals/DeleteConfirmationModal';
 
 const Users = () => {
+  const [createModal, setCreateModal] = useState(false);
+  const [editModal, setEditModal] = useState<null | { type: 'TEACHER' | 'STUDENT'; user: any }>(null);
+  const [deleteModal, setDeleteModal] = useState<null | { type: 'TEACHER' | 'STUDENT'; user: any }>(null);
+  const queryClient = useQueryClient();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['users', 1],
     queryFn: () => getUsers(1, 10)
   });
 
-  const [editModal, setEditModal] = useState<null | { type: 'TEACHER' | 'STUDENT'; user: any }>(null);
+  const createTeacherMutation = useMutation({
+    mutationFn: createTeacher,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setCreateModal(false);
+    },
+  });
+
+  const createStudentMutation = useMutation({
+    mutationFn: createStudent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setCreateModal(false);
+    },
+  });
+
+  const deleteTeacherMutation = useMutation({
+    mutationFn: deleteTeacher,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setDeleteModal(null);
+    },
+  });
+
+  const deleteStudentMutation = useMutation({
+    mutationFn: deleteStudent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setDeleteModal(null);
+    },
+  });
 
   const handleEdit = (user: any) => {
     if (user.role === 'TEACHER') {
@@ -22,19 +59,71 @@ const Users = () => {
     }
   };
 
-  const handleCloseModal = () => setEditModal(null);
+  const handleDelete = (user: any) => {
+    if (user.role === 'TEACHER') {
+      setDeleteModal({ type: 'TEACHER', user });
+    } else if (user.role === 'STUDENT') {
+      setDeleteModal({ type: 'STUDENT', user });
+    }
+  };
+
+  const handleCloseModal = () => {
+    setCreateModal(false);
+    setEditModal(null);
+    setDeleteModal(null);
+  };
 
   const handleSaveTeacher = (data: any) => {
-    console.log(data);
+    if (!editModal) return;
     
-    // TODO: Save teacher changes (API call)
+    const teacherData = {
+      ...data,
+      id: editModal.user.id
+    };
+    
+    updateTeacher(teacherData.id, teacherData);
     handleCloseModal();
   };
+
   const handleSaveStudent = (data: any) => {
-    // TODO: Save student changes (API call)
-    console.log(data);
+    if (!editModal) return;
     
+    const studentData = {
+      ...data,
+      id: editModal.user.id
+    };
+    
+    updateStudent(studentData.id, studentData);
     handleCloseModal();
+  };
+
+  const handleCreateUser = (data: any) => {
+    if (data.role === 'TEACHER') {
+      createTeacherMutation.mutate({
+        phone: data.phone,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        password: data.password
+      });
+    } else {
+      createStudentMutation.mutate({
+        phone: data.phone,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        password: data.password,
+        groupId: data.groupId
+      });
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteModal) return;
+
+    if (deleteModal.type === 'TEACHER') {
+      deleteTeacherMutation.mutate(deleteModal.user.id);
+    } else if (deleteModal.type === 'STUDENT') {
+      deleteStudentMutation.mutate(deleteModal.user.id);
+    }
   };
 
   if (isLoading) {
@@ -67,7 +156,10 @@ const Users = () => {
           <h1 className="text-2xl font-bold text-gray-900">Foydalanuvchilar</h1>
           <p className="text-gray-600 mt-1">Barcha foydalanuvchilar ro'yxati</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-violet-500 text-white rounded-xl hover:from-blue-600 hover:to-violet-600 transition-all duration-300 shadow-sm">
+        <button 
+          onClick={() => setCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-violet-500 text-white rounded-xl hover:from-blue-600 hover:to-violet-600 transition-all duration-300 shadow-sm"
+        >
           <RiAddLine size={20} />
           <span>Yangi foydalanuvchi</span>
         </button>
@@ -125,10 +217,16 @@ const Users = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" onClick={() => handleEdit(user)}>
+                      <button 
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        onClick={() => handleEdit(user)}
+                      >
                         <RiEditLine size={18} />
                       </button>
-                      <button className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                      <button 
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        onClick={() => handleDelete(user)}
+                      >
                         <RiDeleteBinLine size={18} />
                       </button>
                     </div>
@@ -158,10 +256,16 @@ const Users = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" onClick={() => handleEdit(user)}>
+                <button 
+                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  onClick={() => handleEdit(user)}
+                >
                   <RiEditLine size={18} />
                 </button>
-                <button className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                <button 
+                  className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                  onClick={() => handleDelete(user)}
+                >
                   <RiDeleteBinLine size={18} />
                 </button>
               </div>
@@ -205,6 +309,14 @@ const Users = () => {
         </div>
       </div>
 
+      {createModal && (
+        <CreateUserModal
+          isOpen={true}
+          onClose={handleCloseModal}
+          onSave={handleCreateUser}
+        />
+      )}
+
       {editModal?.type === 'TEACHER' && (
         <EditTeacherModal
           isOpen={true}
@@ -213,12 +325,23 @@ const Users = () => {
           onSave={handleSaveTeacher}
         />
       )}
+
       {editModal?.type === 'STUDENT' && (
         <EditStudentModal
           isOpen={true}
           onClose={handleCloseModal}
           student={editModal.user}
           onSave={handleSaveStudent}
+        />
+      )}
+
+      {deleteModal && (
+        <DeleteConfirmationModal
+          isOpen={true}
+          onClose={handleCloseModal}
+          onConfirm={handleConfirmDelete}
+          title={`${deleteModal.type === 'TEACHER' ? 'O\'qituvchi' : 'O\'quvchi'}ni o'chirish`}
+          description={`${deleteModal.user.firstName} ${deleteModal.user.lastName}ni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.`}
         />
       )}
     </div>
