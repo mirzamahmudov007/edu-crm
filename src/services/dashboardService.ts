@@ -1,4 +1,3 @@
-import axiosInstance from '../api/axiosInstance';
 import { getUsers } from './userService';
 import { getGroups } from './groupService';
 
@@ -16,7 +15,6 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
   ]);
 
   const users = usersResponse.data;
-  const groups = groupsResponse.data;
 
   // Use meta.total for total counts
   const totalUsers = usersResponse.meta.total;
