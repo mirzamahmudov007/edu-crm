@@ -11,7 +11,7 @@ import { DeleteConfirmationModal } from '../../components/Modals/DeleteConfirmat
 // Types
 interface EditModalState {
   type: 'TEACHER' | 'STUDENT';
-  user: any;
+  id: string;
 }
 
 // Constants
@@ -22,14 +22,17 @@ const Users = () => {
   const [createModal, setCreateModal] = useState(false);
   const [editModal, setEditModal] = useState<EditModalState | null>(null);
   const [deleteModal, setDeleteModal] = useState<EditModalState | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
   const queryClient = useQueryClient();
 
   // Queries
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['users', 1],
     queryFn: () => getUsers(1, PAGE_SIZE)
   });
 
+  console.log(queryClient);
+  
   // Mutations
   const createTeacherMutation = useMutation({
     mutationFn: createTeacher,
@@ -77,49 +80,63 @@ const Users = () => {
 
   const handleEdit = (user: any) => {
     if (user.role === 'TEACHER') {
-      setEditModal({ type: 'TEACHER', user });
+      setEditModal({ type: 'TEACHER', id: user.id });
     } else if (user.role === 'STUDENT') {
-      setEditModal({ type: 'STUDENT', user });
+      setEditModal({ type: 'STUDENT', id: user.id });
     }
   };
 
   const handleDelete = (user: any) => {
     if (user.role === 'TEACHER') {
-      setDeleteModal({ type: 'TEACHER', user });
+      setDeleteModal({ type: 'TEACHER', id: user.id });
     } else if (user.role === 'STUDENT') {
-      setDeleteModal({ type: 'STUDENT', user });
+      setDeleteModal({ type: 'STUDENT', id: user.id });
     }
   };
 
   const handleSaveTeacher = (data: any) => {
     if (!editModal) return;
     
+    setIsUpdating(true);
+    handleCloseModal();
+    
     const teacherData = {
       ...data,
-      id: editModal.user.id
+      id: editModal.id
     };
     
-    updateTeacher(teacherData.id, teacherData).then(() => {
-      invalidateQueries();
-      handleCloseModal();
-    });
+    updateTeacher(teacherData.id, teacherData)
+      .then(() => {
+        invalidateQueries();
+      })
+      .finally(() => {
+        setIsUpdating(false);
+      });
   };
 
   const handleSaveStudent = (data: any) => {
     if (!editModal) return;
     
+    setIsUpdating(true);
+    handleCloseModal();
+    
     const studentData = {
       ...data,
-      id: editModal.user.id
+      id: editModal.id
     };
     
-    updateStudent(studentData.id, studentData).then(() => {
-      invalidateQueries();
-      handleCloseModal();
-    });
+    updateStudent(studentData.id, studentData)
+      .then(() => {
+        invalidateQueries();
+      })
+      .finally(() => {
+        setIsUpdating(false);
+      });
   };
 
   const handleCreateUser = (data: any) => {
+    handleCloseModal();
+    
     if (data.role === 'TEACHER') {
       createTeacherMutation.mutate({
         phone: data.phone,
@@ -140,13 +157,23 @@ const Users = () => {
 
   const handleConfirmDelete = () => {
     if (!deleteModal) return;
-
+    
+    handleCloseModal();
+    
     if (deleteModal.type === 'TEACHER') {
-      deleteTeacherMutation.mutate(deleteModal.user.id);
+      deleteTeacherMutation.mutate(deleteModal.id);
     } else if (deleteModal.type === 'STUDENT') {
-      deleteStudentMutation.mutate(deleteModal.user.id);
+      deleteStudentMutation.mutate(deleteModal.id);
     }
   };
+
+  const isMutating =
+    createTeacherMutation.isPending ||
+    createStudentMutation.isPending ||
+    deleteTeacherMutation.isPending ||
+    deleteStudentMutation.isPending ||
+    isUpdating ||
+    isFetching;
 
   // Loading State
   if (isLoading) {
@@ -192,7 +219,12 @@ const Users = () => {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block">
+      <div className="hidden md:block relative">
+        {isMutating && (
+          <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
+            <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -207,27 +239,27 @@ const Users = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {data?.data.map((user) => (
-                <tr key={user.id} className="group hover:bg-gray-50/50 transition-all duration-300">
+                <tr key={user.id} className="group hover:bg-gray-50/50 transition-all duration-300 animate-fadeIn">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-violet-100 flex items-center justify-center">
                         <RiUserLine className="text-blue-600" size={20} />
                       </div>
-                      <span className="text-sm font-medium text-gray-900">{user.firstName}</span>
+                      <span className="text-sm font-medium text-gray-900 transition-all duration-300">{user.firstName}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900">{user.lastName}</span>
+                    <span className="text-sm text-gray-900 transition-all duration-300">{user.lastName}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <RiPhoneLine className="text-gray-400" size={16} />
-                      <span>{user.phone}</span>
+                      <span className="transition-all duration-300">{user.phone}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`
-                      inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                      inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300
                       ${user.role === 'TEACHER' ? 'bg-blue-100 text-blue-800' : 
                         user.role === 'STUDENT' ? 'bg-green-100 text-green-800' : 
                         'bg-purple-100 text-purple-800'}
@@ -238,7 +270,7 @@ const Users = () => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <RiTimeLine className="text-gray-400" size={16} />
-                      <span>{format(new Date(user.createdAt), 'dd.MM.yyyy HH:mm')}</span>
+                      <span className="transition-all duration-300">{format(new Date(user.createdAt), 'dd.MM.yyyy HH:mm')}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -265,19 +297,24 @@ const Users = () => {
       </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden divide-y divide-gray-100">
+      <div className="md:hidden divide-y divide-gray-100 relative">
+        {isMutating && (
+          <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
+            <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
         {data?.data.map((user) => (
-          <div key={user.id} className="p-4 hover:bg-gray-50/50 transition-all duration-300">
+          <div key={user.id} className="p-4 hover:bg-gray-50/50 transition-all duration-300 animate-fadeIn">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-violet-100 flex items-center justify-center">
                   <RiUserLine className="text-blue-600" size={24} />
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900">{user.firstName} {user.lastName}</h3>
+                  <h3 className="font-medium text-gray-900 transition-all duration-300">{user.firstName} {user.lastName}</h3>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <RiPhoneLine className="text-gray-400" size={14} />
-                    <span>{user.phone}</span>
+                    <span className="transition-all duration-300">{user.phone}</span>
                   </div>
                 </div>
               </div>
@@ -348,7 +385,7 @@ const Users = () => {
         <EditTeacherModal
           isOpen={true}
           onClose={handleCloseModal}
-          teacher={editModal.user}
+          teacherId={editModal.id}
           onSave={handleSaveTeacher}
         />
       )}
@@ -357,7 +394,7 @@ const Users = () => {
         <EditStudentModal
           isOpen={true}
           onClose={handleCloseModal}
-          student={editModal.user}
+          studentId={editModal.id}
           onSave={handleSaveStudent}
         />
       )}
@@ -368,7 +405,7 @@ const Users = () => {
           onClose={handleCloseModal}
           onConfirm={handleConfirmDelete}
           title={`${deleteModal.type === 'TEACHER' ? 'O\'qituvchi' : 'O\'quvchi'}ni o'chirish`}
-          description={`${deleteModal.user.firstName} ${deleteModal.user.lastName}ni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.`}
+          description={`${deleteModal.id} ni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.`}
         />
       )}
     </div>

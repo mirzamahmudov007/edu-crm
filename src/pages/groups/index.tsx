@@ -10,8 +10,9 @@ const Groups = () => {
   const [editModal, setEditModal] = useState<null | { group: any }>(null);
   const [deleteModal, setDeleteModal] = useState<null | { group: any }>(null);
   const queryClient = useQueryClient();
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['groups', 1],
     queryFn: () => getGroups(1, 10)
   });
@@ -56,18 +57,34 @@ const Groups = () => {
   };
 
   const handleSaveGroup = (data: { name: string; teacherId: string }) => {
-    if (editModal) {
-      updateGroupMutation.mutate({ id: editModal.group.id, data });
-    } else {
-      createGroupMutation.mutate(data);
-    }
+    setIsUpdating(true);
     handleCloseModal();
+    if (editModal) {
+      updateGroupMutation.mutate({ id: editModal.group.id, data }, {
+        onSettled: () => setIsUpdating(false)
+      });
+    } else {
+      createGroupMutation.mutate(data, {
+        onSettled: () => setIsUpdating(false)
+      });
+    }
   };
 
   const handleConfirmDelete = () => {
     if (!deleteModal) return;
-    deleteGroupMutation.mutate(deleteModal.group.id);
+    handleCloseModal();
+    setIsUpdating(true);
+    deleteGroupMutation.mutate(deleteModal.group.id, {
+      onSettled: () => setIsUpdating(false)
+    });
   };
+
+  const isMutating =
+    createGroupMutation.isPending ||
+    updateGroupMutation.isPending ||
+    deleteGroupMutation.isPending ||
+    isUpdating ||
+    isFetching;
 
   if (isLoading) {
     return (
@@ -109,7 +126,12 @@ const Groups = () => {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block">
+      <div className="hidden md:block relative">
+        {isMutating && (
+          <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
+            <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -121,13 +143,13 @@ const Groups = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {data?.data.map((group) => (
-                <tr key={group.id} className="group hover:bg-gray-50/50 transition-all duration-300">
+                <tr key={group.id} className="group hover:bg-gray-50/50 transition-all duration-300 animate-fadeIn">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-violet-100 flex items-center justify-center">
                         <RiGroupLine className="text-blue-600" size={20} />
                       </div>
-                      <span className="text-sm font-medium text-gray-900">{group.name}</span>
+                      <span className="text-sm font-medium text-gray-900 transition-all duration-300">{group.name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -136,12 +158,12 @@ const Groups = () => {
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
                           <RiUserLine className="text-green-600" size={16} />
                         </div>
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm text-gray-900 transition-all duration-300">
                           {group.teacher.firstName} {group.teacher.lastName}
                         </span>
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-500">O'qituvchi tayinlanmagan</span>
+                      <span className="text-sm text-gray-500 transition-all duration-300">O'qituvchi tayinlanmagan</span>
                     )}
                   </td>
                   <td className="px-6 py-4">
@@ -168,23 +190,28 @@ const Groups = () => {
       </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden divide-y divide-gray-100">
+      <div className="md:hidden divide-y divide-gray-100 relative">
+        {isMutating && (
+          <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
+            <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
         {data?.data.map((group) => (
-          <div key={group.id} className="p-4 hover:bg-gray-50/50 transition-all duration-300">
+          <div key={group.id} className="p-4 hover:bg-gray-50/50 transition-all duration-300 animate-fadeIn">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-violet-100 flex items-center justify-center">
                   <RiGroupLine className="text-blue-600" size={24} />
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900">{group.name}</h3>
+                  <h3 className="font-medium text-gray-900 transition-all duration-300">{group.name}</h3>
                   {group.teacher ? (
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <RiUserLine className="text-gray-400" size={14} />
-                      <span>{group.teacher.firstName} {group.teacher.lastName}</span>
+                      <span className="transition-all duration-300">{group.teacher.firstName} {group.teacher.lastName}</span>
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-500">O'qituvchi tayinlanmagan</span>
+                    <span className="text-sm text-gray-500 transition-all duration-300">O'qituvchi tayinlanmagan</span>
                   )}
                 </div>
               </div>

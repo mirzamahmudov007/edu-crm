@@ -21,7 +21,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/upload': 'Upload',
 };
 
-
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
@@ -33,7 +32,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     localStorage.removeItem('role');
     navigate('/login');
   }
-  
 
   return (
     <header className="bg-gradient-to-r from-white/90 to-blue-50/60 backdrop-blur-xl border-b border-gray-100 h-16 md:h-20 px-4 md:px-8 flex items-center justify-between shadow-md">

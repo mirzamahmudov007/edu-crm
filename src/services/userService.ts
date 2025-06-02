@@ -41,6 +41,16 @@ export const updateStudent = async (id: string, data: User) => {
   return response.data;
 };
 
+export const getStudentById = async (id: string) => {
+  const response = await axiosInstance.get<User>(`/student/${id}`);
+  return response.data;
+};
+
+export const getTeacherById = async (id: string) => {
+  const response = await axiosInstance.get<User>(`/teacher/${id}`);
+  return response.data;
+};
+
 export interface CreateUserData {
   phone: string;
   firstName: string;
