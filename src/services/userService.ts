@@ -41,4 +41,45 @@ export const updateStudent = async (id: string, data: User) => {
   return response.data;
 };
 
+export interface CreateUserData {
+  phone: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+  role: 'TEACHER' | 'STUDENT';
+  groupId?: string;
+}
+
+export interface UpdateUserData {
+  phone?: string;
+  firstName?: string;
+  lastName?: string;
+  password?: string;
+  groupId?: string;
+}
+
+export interface UsersResponse {
+  data: User[];
+  meta: {
+    total: number;
+    page: number;
+    pageSize: number;
+    pageCount: number;
+  };
+}
+
+export const createUser = async (data: CreateUserData) => {
+  const response = await axiosInstance.post<User>('/users', data);
+  return response.data;
+};
+
+export const updateUser = async (id: string, data: UpdateUserData) => {
+  const response = await axiosInstance.patch<User>(`/users/${id}`, data);
+  return response.data;
+};
+
+export const deleteUser = async (id: string) => {
+  await axiosInstance.delete(`/users/${id}`);
+};
+
 

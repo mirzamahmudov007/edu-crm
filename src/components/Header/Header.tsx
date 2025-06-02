@@ -15,74 +15,66 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-
-
   return (
-    <header className="bg-gradient-to-r from-white/90 to-blue-50/60 backdrop-blur-xl border-b border-gray-100 h-20 px-8 flex items-center justify-between shadow-md">
-     
+    <header className="bg-gradient-to-r from-white/90 to-blue-50/60 backdrop-blur-xl border-b border-gray-100 h-16 md:h-20 px-4 md:px-8 flex items-center justify-between shadow-md">
+      {/* Left: Menu & Title */}
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
           className="p-2 rounded-xl bg-white/80 hover:bg-blue-100 transition-colors text-blue-500 shadow-sm border border-transparent hover:border-blue-200"
           aria-label="Toggle menu"
         >
-          <RiMenuUnfoldLine size={22} />
+          <RiMenuUnfoldLine size={20} className="md:hidden" />
+          <RiMenuUnfoldLine size={22} className="hidden md:block" />
         </button>
-        <RiDashboard3Fill size={22} className="text-blue-400" />
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent tracking-wide">
-          Dashboard
-        </h1>
+        <div className="flex items-center gap-2">
+          <RiDashboard3Fill size={20} className="text-blue-400 md:hidden" />
+          <RiDashboard3Fill size={22} className="text-blue-400 hidden md:block" />
+          <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent tracking-wide">
+            Dashboard
+          </h1>
+        </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      {/* Right: Actions */}
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Notifications */}
         <button
-          className="p-2 rounded-xl bg-white/80 hover:bg-blue-100 transition-colors text-blue-500 shadow-sm border border-transparent hover:border-blue-200 relative"
+          className="p-2 rounded-xl bg-white/80 hover:bg-blue-100 transition-colors text-gray-600 hover:text-blue-500 shadow-sm border border-transparent hover:border-blue-200 relative"
           aria-label="Notifications"
         >
-          <RiNotification3Line size={24} />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
+          <RiNotification3Line size={20} className="md:hidden" />
+          <RiNotification3Line size={22} className="hidden md:block" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
         </button>
 
+        {/* Profile Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2 p-2 rounded-xl bg-white/80 hover:bg-blue-100 transition-colors text-blue-500 shadow-sm border border-transparent hover:border-blue-200"
-            aria-label="User profile"
+            className="p-2 rounded-xl bg-white/80 hover:bg-blue-100 transition-colors text-gray-600 hover:text-blue-500 shadow-sm border border-transparent hover:border-blue-200"
+            aria-label="Profile menu"
           >
-            <img
-              src="https://randomuser.me/api/portraits/men/32.jpg"
-              alt="User avatar"
-              className="w-9 h-9 rounded-full ring-2 ring-blue-100 shadow"
-            />
-            <span className="font-semibold text-gray-700 hidden sm:block">Admin</span>
+            <RiUserLine size={20} className="md:hidden" />
+            <RiUserLine size={22} className="hidden md:block" />
           </button>
 
+          {/* Dropdown Menu */}
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-60 bg-white/95 rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-fade-in">
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
-                <img
-                  src="https://randomuser.me/api/portraits/men/32.jpg"
-                  alt="User avatar"
-                  className="w-10 h-10 rounded-full ring-2 ring-blue-100 shadow"
-                />
-                <div>
-                  <p className="text-base font-semibold text-gray-900">Admin</p>
-                  <p className="text-xs text-gray-500">admin@itech.uz</p>
-                </div>
-              </div>
-              <a href="/profile" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-xl transition">
-                <RiUserLine size={20} className="text-blue-400" />
-                <span>Profil</span>
-              </a>
-              <a href="/settings" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-xl transition">
-                <RiSettings4Line size={20} className="text-violet-400" />
-                <span>Sozlamalar</span>
-              </a>
-              <hr className="my-2" />
-              <a href="/logout" className="flex items-center gap-2 px-4 py-2 text-rose-600 hover:bg-blue-50 rounded-xl transition">
-                <RiLogoutBoxLine size={20} className="text-rose-400" />
-                <span>Chiqish</span>
-              </a>
+            <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white shadow-lg border border-gray-100 py-1 z-50">
+              <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                <RiUserLine size={18} />
+                Profil
+              </button>
+              <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                <RiSettings4Line size={18} />
+                Sozlamalar
+              </button>
+              <div className="border-t border-gray-100 my-1"></div>
+              <button className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                <RiLogoutBoxLine size={18} />
+                Chiqish
+              </button>
             </div>
           )}
         </div>

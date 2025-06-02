@@ -8,21 +8,33 @@ import { CreateUserModal } from '../../components/Modals/CreateUserModal';
 import { useState } from 'react';
 import { DeleteConfirmationModal } from '../../components/Modals/DeleteConfirmationModal';
 
+// Types
+interface EditModalState {
+  type: 'TEACHER' | 'STUDENT';
+  user: any;
+}
+
+// Constants
+const PAGE_SIZE = 10;
+
 const Users = () => {
+  // State
   const [createModal, setCreateModal] = useState(false);
-  const [editModal, setEditModal] = useState<null | { type: 'TEACHER' | 'STUDENT'; user: any }>(null);
-  const [deleteModal, setDeleteModal] = useState<null | { type: 'TEACHER' | 'STUDENT'; user: any }>(null);
+  const [editModal, setEditModal] = useState<EditModalState | null>(null);
+  const [deleteModal, setDeleteModal] = useState<EditModalState | null>(null);
   const queryClient = useQueryClient();
 
+  // Queries
   const { data, isLoading, error } = useQuery({
     queryKey: ['users', 1],
-    queryFn: () => getUsers(1, 10)
+    queryFn: () => getUsers(1, PAGE_SIZE)
   });
 
+  // Mutations
   const createTeacherMutation = useMutation({
     mutationFn: createTeacher,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      invalidateQueries();
       setCreateModal(false);
     },
   });
@@ -30,7 +42,7 @@ const Users = () => {
   const createStudentMutation = useMutation({
     mutationFn: createStudent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      invalidateQueries();
       setCreateModal(false);
     },
   });
@@ -38,7 +50,7 @@ const Users = () => {
   const deleteTeacherMutation = useMutation({
     mutationFn: deleteTeacher,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      invalidateQueries();
       setDeleteModal(null);
     },
   });
@@ -46,10 +58,22 @@ const Users = () => {
   const deleteStudentMutation = useMutation({
     mutationFn: deleteStudent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      invalidateQueries();
       setDeleteModal(null);
     },
   });
+
+  // Helper Functions
+  const invalidateQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+  };
+
+  const handleCloseModal = () => {
+    setCreateModal(false);
+    setEditModal(null);
+    setDeleteModal(null);
+  };
 
   const handleEdit = (user: any) => {
     if (user.role === 'TEACHER') {
@@ -67,12 +91,6 @@ const Users = () => {
     }
   };
 
-  const handleCloseModal = () => {
-    setCreateModal(false);
-    setEditModal(null);
-    setDeleteModal(null);
-  };
-
   const handleSaveTeacher = (data: any) => {
     if (!editModal) return;
     
@@ -81,8 +99,10 @@ const Users = () => {
       id: editModal.user.id
     };
     
-    updateTeacher(teacherData.id, teacherData);
-    handleCloseModal();
+    updateTeacher(teacherData.id, teacherData).then(() => {
+      invalidateQueries();
+      handleCloseModal();
+    });
   };
 
   const handleSaveStudent = (data: any) => {
@@ -93,8 +113,10 @@ const Users = () => {
       id: editModal.user.id
     };
     
-    updateStudent(studentData.id, studentData);
-    handleCloseModal();
+    updateStudent(studentData.id, studentData).then(() => {
+      invalidateQueries();
+      handleCloseModal();
+    });
   };
 
   const handleCreateUser = (data: any) => {
@@ -126,6 +148,7 @@ const Users = () => {
     }
   };
 
+  // Loading State
   if (isLoading) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -141,6 +164,7 @@ const Users = () => {
     );
   }
 
+  // Error State
   if (error) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -149,8 +173,10 @@ const Users = () => {
     );
   }
 
+  // Render
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+      {/* Header */}
       <div className="p-6 border-b border-gray-100 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Foydalanuvchilar</h1>
@@ -309,6 +335,7 @@ const Users = () => {
         </div>
       </div>
 
+      {/* Modals */}
       {createModal && (
         <CreateUserModal
           isOpen={true}

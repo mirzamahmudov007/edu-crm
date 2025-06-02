@@ -10,8 +10,8 @@ export interface DashboardStats {
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   const [usersResponse, groupsResponse] = await Promise.all([
-    getUsers(1, 10), // Get all users
-    getGroups(1, 10) // Get all groups
+    getUsers(1, 10), 
+    getGroups(1, 10) 
   ]);
 
   const users = usersResponse.data;
