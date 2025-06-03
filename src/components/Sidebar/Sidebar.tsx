@@ -3,8 +3,7 @@ import {
   RiDashboard3Fill,
   RiGroupFill,
   RiTeamFill,
-  RiFileListFill,
-  RiUploadCloudFill
+  RiFileListFill
 } from "react-icons/ri";
 
 interface MenuItem {
@@ -58,11 +57,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
           label: "Testlar", 
           path: "/tests"
         },
-        {
-          icon: <RiUploadCloudFill size={24} className="text-cyan-400" />, 
-          label: "Upload", 
-          path: "/upload"
-        }
+        // {
+        //   icon: <RiUploadCloudFill size={24} className="text-cyan-400" />, 
+        //   label: "Upload", 
+        //   path: "/upload"
+        // }
       ];
 
   const user: User = {

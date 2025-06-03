@@ -4,6 +4,7 @@ export interface User {
   firstName: string;
   lastName: string;
   role: 'TEACHER' | 'STUDENT' | 'ADMIN';
+  groupId?: string;
   createdAt: string;
   updatedAt: string;
 }

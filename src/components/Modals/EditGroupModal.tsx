@@ -29,6 +29,11 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({
     teacherId: ''
   });
 
+  const [errors, setErrors] = useState({
+    name: '',
+    teacherId: ''
+  });
+
   const { data: teachers } = useQuery({
     queryKey: ['teachers'],
     queryFn: () => getTeachers()
@@ -43,9 +48,31 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({
     }
   }, [group]);
 
+  const validateForm = () => {
+    const newErrors = {
+      name: '',
+      teacherId: ''
+    };
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Guruh nomi kiritilishi shart';
+    } else if (formData.name.trim().length < 3) {
+      newErrors.name = 'Guruh nomi kamida 3 ta harfdan iborat bo\'lishi kerak';
+    }
+
+    if (!formData.teacherId) {
+      newErrors.teacherId = 'O\'qituvchi tanlanishi shart';
+    }
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (validateForm()) {
+      onSave(formData);
+    }
   };
 
   if (!isOpen) return null;
@@ -79,11 +106,18 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({
                   type="text"
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, name: e.target.value }));
+                    if (errors.name) {
+                      setErrors(prev => ({ ...prev, name: '' }));
+                    }
+                  }}
+                  className={`w-full px-4 py-2 border ${errors.name ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                   placeholder="Guruh nomini kiriting"
-                  required
                 />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-rose-500">{errors.name}</p>
+                )}
               </div>
 
               <div>
@@ -93,9 +127,13 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({
                 <select
                   id="teacherId"
                   value={formData.teacherId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, teacherId: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  required
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, teacherId: e.target.value }));
+                    if (errors.teacherId) {
+                      setErrors(prev => ({ ...prev, teacherId: '' }));
+                    }
+                  }}
+                  className={`w-full px-4 py-2 border ${errors.teacherId ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                 >
                   <option value="">O'qituvchini tanlang</option>
                   {teachers?.data.map((teacher: User) => (
@@ -104,6 +142,9 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({
                     </option>
                   ))}
                 </select>
+                {errors.teacherId && (
+                  <p className="mt-1 text-sm text-rose-500">{errors.teacherId}</p>
+                )}
               </div>
             </div>
 

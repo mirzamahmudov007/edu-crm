@@ -3,6 +3,7 @@ import { RiCloseLine } from 'react-icons/ri';
 import { useQuery } from '@tanstack/react-query';
 import { getGroups } from '../../services/groupService';
 import { getStudentById } from '../../services/userService';
+import { PhoneInput } from '../PhoneInput';
 
 interface EditStudentModalProps {
   isOpen: boolean;
@@ -31,13 +32,21 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     groupId: '',
   });
 
+  const [errors, setErrors] = useState({
+    phone: '',
+    firstName: '',
+    lastName: '',
+    password: '',
+    groupId: ''
+  });
+
   useEffect(() => {
     if (student) {
       setFormData({
         phone: student.phone,
         firstName: student.firstName,
         lastName: student.lastName,
-        groupId: "student.groupId",
+        groupId: student.groupId || '',
         password: '',
       });
     }
@@ -49,9 +58,46 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     queryFn: () => getGroups(1, 100)
   });
 
+  const validateForm = () => {
+    const newErrors = {
+      phone: '',
+      firstName: '',
+      lastName: '',
+      password: '',
+      groupId: ''
+    };
+
+    if (!formData.phone) {
+      newErrors.phone = 'Telefon raqam kiritilishi shart';
+    } else if (formData.phone.length !== 12) {
+      newErrors.phone = 'Telefon raqam noto\'g\'ri formatda';
+    }
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'Ism kiritilishi shart';
+    } else if (/\d/.test(formData.firstName)) {
+      newErrors.firstName = 'Ismda raqam bo\'lishi mumkin emas';
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Familiya kiritilishi shart';
+    } else if (/\d/.test(formData.lastName)) {
+      newErrors.lastName = 'Familiyada raqam bo\'lishi mumkin emas';
+    }
+
+    if (!formData.groupId) {
+      newErrors.groupId = 'Guruh tanlanishi shart';
+    }
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (validateForm()) {
+      onSave(formData);
+    }
   };
 
   if (!isOpen) return null;
@@ -79,13 +125,15 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                 Telefon raqam
               </label>
-              <input
-                type="tel"
-                id="phone"
+              <PhoneInput
                 value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                placeholder="+998 XX XXX XX XX"
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, phone: value }));
+                  if (errors.phone) {
+                    setErrors(prev => ({ ...prev, phone: '' }));
+                  }
+                }}
+                error={errors.phone}
                 required
               />
             </div>
@@ -98,10 +146,20 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
                 type="text"
                 id="firstName"
                 value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[0-9]/g, '');
+                  setFormData(prev => ({ ...prev, firstName: value }));
+                  if (errors.firstName) {
+                    setErrors(prev => ({ ...prev, firstName: '' }));
+                  }
+                }}
+                className={`w-full px-4 py-2 border ${errors.firstName ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+                placeholder="Ismni kiriting"
                 required
               />
+              {errors.firstName && (
+                <p className="mt-1 text-sm text-rose-500">{errors.firstName}</p>
+              )}
             </div>
 
             <div>
@@ -112,10 +170,20 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
                 type="text"
                 id="lastName"
                 value={formData.lastName}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[0-9]/g, '');
+                  setFormData(prev => ({ ...prev, lastName: value }));
+                  if (errors.lastName) {
+                    setErrors(prev => ({ ...prev, lastName: '' }));
+                  }
+                }}
+                className={`w-full px-4 py-2 border ${errors.lastName ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+                placeholder="Familiyani kiriting"
                 required
               />
+              {errors.lastName && (
+                <p className="mt-1 text-sm text-rose-500">{errors.lastName}</p>
+              )}
             </div>
 
             <div>
@@ -125,8 +193,13 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
               <select
                 id="groupId"
                 value={formData.groupId}
-                onChange={(e) => setFormData(prev => ({ ...prev, groupId: e.target.value }))}
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, groupId: e.target.value }));
+                  if (errors.groupId) {
+                    setErrors(prev => ({ ...prev, groupId: '' }));
+                  }
+                }}
+                className={`w-full px-4 py-2 border ${errors.groupId ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                 required
               >
                 <option value="">Guruhni tanlang</option>
@@ -136,6 +209,9 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
                   </option>
                 ))}
               </select>
+              {errors.groupId && (
+                <p className="mt-1 text-sm text-rose-500">{errors.groupId}</p>
+              )}
             </div>
 
             <div>
@@ -146,10 +222,18 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
                 type="password"
                 id="password"
                 value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, password: e.target.value }));
+                  if (errors.password) {
+                    setErrors(prev => ({ ...prev, password: '' }));
+                  }
+                }}
+                className={`w-full px-4 py-2 border ${errors.password ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                 placeholder="Parolni o'zgartirmaslik uchun bo'sh qoldiring"
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-rose-500">{errors.password}</p>
+              )}
             </div>
 
             <div className="flex items-center gap-3 pt-4">

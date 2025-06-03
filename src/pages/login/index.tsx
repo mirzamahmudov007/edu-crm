@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RiLockLine, RiUserLine } from 'react-icons/ri';
 import { login } from '../../services/authService';
+import { PhoneInput } from '../../components/PhoneInput';
 
 interface LoginFormData {
   phone: string;
@@ -16,14 +17,6 @@ const Login = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,14 +66,10 @@ const Login = () => {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <RiUserLine className="text-gray-400" size={20} />
                 </div>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
+                <PhoneInput
                   value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="+998 XX XXX XX XX"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                  onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
+                  className="pl-10"
                   required
                 />
               </div>
@@ -97,11 +86,10 @@ const Login = () => {
                 <input
                   type="password"
                   id="password"
-                  name="password"
                   value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                  placeholder="Parolni kiriting"
                   required
                 />
               </div>
@@ -110,17 +98,16 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`
-                w-full py-3 px-4 rounded-xl text-white font-medium
-                bg-gradient-to-r from-blue-500 to-violet-500
-                hover:from-blue-600 hover:to-violet-600
-                focus:ring-2 focus:ring-blue-100
-                transition-all duration-300
-                disabled:opacity-50 disabled:cursor-not-allowed
-                ${loading ? 'animate-pulse' : ''}
-              `}
+              className="w-full py-3 bg-gradient-to-r from-blue-500 to-violet-500 text-white rounded-xl hover:from-blue-600 hover:to-violet-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Kirish...' : 'Kirish'}
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  <span>Kirish...</span>
+                </div>
+              ) : (
+                'Kirish'
+              )}
             </button>
           </form>
         </div>

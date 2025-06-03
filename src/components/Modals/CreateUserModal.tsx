@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { RiCloseLine } from 'react-icons/ri';
 import { useQuery } from '@tanstack/react-query';
 import { getGroups } from '../../services/groupService';
+import { PhoneInput } from '../PhoneInput';
 
 interface CreateUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
+  onSave: (data: { phone: string; firstName: string; lastName: string; password: string; groupId: string; role: 'STUDENT' | 'TEACHER' }) => void;
 }
 
 export const CreateUserModal: React.FC<CreateUserModalProps> = ({
@@ -23,14 +24,63 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     role: 'STUDENT' as 'STUDENT' | 'TEACHER'
   });
 
+  const [errors, setErrors] = useState({
+    phone: '',
+    firstName: '',
+    lastName: '',
+    password: '',
+    groupId: ''
+  });
+
   const { data: groups } = useQuery({
     queryKey: ['groups'],
     queryFn: () => getGroups(1, 100)
   });
 
+  const validateForm = () => {
+    const newErrors = {
+      phone: '',
+      firstName: '',
+      lastName: '',
+      password: '',
+      groupId: ''
+    };
+
+    if (!formData.phone) {
+      newErrors.phone = 'Telefon raqam kiritilishi shart';
+    } else if (formData.phone.length !== 12) {
+      newErrors.phone = 'Telefon raqam noto\'g\'ri formatda';
+    }
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'Ism kiritilishi shart';
+    } else if (/\d/.test(formData.firstName)) {
+      newErrors.firstName = 'Ismda raqam bo\'lishi mumkin emas';
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Familiya kiritilishi shart';
+    } else if (/\d/.test(formData.lastName)) {
+      newErrors.lastName = 'Familiyada raqam bo\'lishi mumkin emas';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Parol kiritilishi shart';
+    }
+
+    if (formData.role === 'STUDENT' && !formData.groupId) {
+      newErrors.groupId = 'Guruh tanlanishi shart';
+    }
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (validateForm()) {
+      onSave(formData);
+    }
   };
 
   if (!isOpen) return null;
@@ -90,11 +140,20 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 type="text"
                 id="firstName"
                 value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[0-9]/g, '');
+                  setFormData(prev => ({ ...prev, firstName: value }));
+                  if (errors.firstName) {
+                    setErrors(prev => ({ ...prev, firstName: '' }));
+                  }
+                }}
+                className={`w-full px-4 py-2 border ${errors.firstName ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                 placeholder="Ismni kiriting"
                 required
               />
+              {errors.firstName && (
+                <p className="mt-1 text-sm text-rose-500">{errors.firstName}</p>
+              )}
             </div>
 
             <div>
@@ -105,24 +164,35 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 type="text"
                 id="lastName"
                 value={formData.lastName}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[0-9]/g, '');
+                  setFormData(prev => ({ ...prev, lastName: value }));
+                  if (errors.lastName) {
+                    setErrors(prev => ({ ...prev, lastName: '' }));
+                  }
+                }}
+                className={`w-full px-4 py-2 border ${errors.lastName ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                 placeholder="Familiyani kiriting"
                 required
               />
+              {errors.lastName && (
+                <p className="mt-1 text-sm text-rose-500">{errors.lastName}</p>
+              )}
             </div>
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                 Telefon
               </label>
-              <input
-                type="tel"
-                id="phone"
+              <PhoneInput
                 value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="+998901234567"
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, phone: value }));
+                  if (errors.phone) {
+                    setErrors(prev => ({ ...prev, phone: '' }));
+                  }
+                }}
+                error={errors.phone}
                 required
               />
             </div>
@@ -135,11 +205,19 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 type="password"
                 id="password"
                 value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, password: e.target.value }));
+                  if (errors.password) {
+                    setErrors(prev => ({ ...prev, password: '' }));
+                  }
+                }}
+                className={`w-full px-4 py-2 border ${errors.password ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                 placeholder="Parolni kiriting"
                 required
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-rose-500">{errors.password}</p>
+              )}
             </div>
 
             {formData.role === 'STUDENT' && (
@@ -150,8 +228,13 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 <select
                   id="groupId"
                   value={formData.groupId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, groupId: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, groupId: e.target.value }));
+                    if (errors.groupId) {
+                      setErrors(prev => ({ ...prev, groupId: '' }));
+                    }
+                  }}
+                  className={`w-full px-4 py-2 border ${errors.groupId ? 'border-rose-500' : 'border-gray-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                   required
                 >
                   <option value="">Guruhni tanlang</option>
@@ -161,6 +244,9 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                     </option>
                   ))}
                 </select>
+                {errors.groupId && (
+                  <p className="mt-1 text-sm text-rose-500">{errors.groupId}</p>
+                )}
               </div>
             )}
           </div>
