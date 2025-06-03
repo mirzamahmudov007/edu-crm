@@ -3,11 +3,12 @@ import { getGroups, deleteGroup, updateGroup, createGroup } from '../../services
 import { RiEditLine, RiDeleteBinLine, RiGroupLine, RiUserLine, RiAddLine } from 'react-icons/ri';
 import { useState } from 'react';
 import { CreateGroupModal } from '../../components/Modals/CreateGroupModal';
+import { EditGroupModal } from '../../components/Modals/EditGroupModal';
 import { DeleteConfirmationModal } from '../../components/Modals/DeleteConfirmationModal';
 
 const Groups = () => {
   const [createModal, setCreateModal] = useState(false);
-  const [editModal, setEditModal] = useState<null | { group: any }>(null);
+  const [editModal, setEditModal] = useState<null | { id: string }>(null);
   const [deleteModal, setDeleteModal] = useState<null | { group: any }>(null);
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -43,7 +44,7 @@ const Groups = () => {
   });
 
   const handleEdit = (group: any) => {
-    setEditModal({ group });
+    setEditModal({ id: group.id });
   };
 
   const handleDelete = (group: any) => {
@@ -60,7 +61,7 @@ const Groups = () => {
     setIsUpdating(true);
     handleCloseModal();
     if (editModal) {
-      updateGroupMutation.mutate({ id: editModal.group.id, data }, {
+      updateGroupMutation.mutate({ id: editModal.id, data }, {
         onSettled: () => setIsUpdating(false)
       });
     } else {
@@ -261,11 +262,11 @@ const Groups = () => {
       )}
 
       {editModal && (
-        <CreateGroupModal
+        <EditGroupModal
           isOpen={true}
           onClose={handleCloseModal}
+          groupId={editModal.id}
           onSave={handleSaveGroup}
-          group={editModal.group}
         />
       )}
 

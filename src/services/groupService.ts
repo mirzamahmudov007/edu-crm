@@ -6,6 +6,11 @@ export const getGroups = async (page: number = 1, pageSize: number = 10) => {
   return response.data;
 };
 
+export const getGroupById = async (id: string) => {
+  const response = await axiosInstance.get<Group>(`/group/${id}`);
+  return response.data;
+};
+
 export const createGroup = async (data: { name: string; teacherId: string }) => {
   const response = await axiosInstance.post<Group>('/group', data);
   return response.data;
