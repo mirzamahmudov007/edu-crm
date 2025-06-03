@@ -48,7 +48,9 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
     if (!formData.phone) {
       newErrors.phone = 'Telefon raqam kiritilishi shart';
-    } else if (formData.phone.length !== 12) {
+    } else if (!formData.phone.startsWith('+998')) {
+      newErrors.phone = 'Telefon raqam +998 bilan boshlanishi kerak';
+    } else if (formData.phone.length !== 13) {
       newErrors.phone = 'Telefon raqam noto\'g\'ri formatda';
     }
 
@@ -187,7 +189,8 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               <PhoneInput
                 value={formData.phone}
                 onChange={(value) => {
-                  setFormData(prev => ({ ...prev, phone: value }));
+                  const formattedValue = value.startsWith('+') ? value : `+${value}`;
+                  setFormData(prev => ({ ...prev, phone: formattedValue }));
                   if (errors.phone) {
                     setErrors(prev => ({ ...prev, phone: '' }));
                   }

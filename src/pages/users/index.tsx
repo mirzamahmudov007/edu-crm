@@ -7,6 +7,7 @@ import { EditStudentModal } from '../../components/Modals/EditStudentModal';
 import { CreateUserModal } from '../../components/Modals/CreateUserModal';
 import { useState } from 'react';
 import { DeleteConfirmationModal } from '../../components/Modals/DeleteConfirmationModal';
+import type { User, PaginatedResponse } from '../../types/user';
 
 // Types
 interface EditModalState {
@@ -15,7 +16,7 @@ interface EditModalState {
 }
 
 // Constants
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 const Users = () => {
   // State
@@ -23,12 +24,13 @@ const Users = () => {
   const [editModal, setEditModal] = useState<EditModalState | null>(null);
   const [deleteModal, setDeleteModal] = useState<EditModalState | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const queryClient = useQueryClient();
 
   // Queries
-  const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['users', 1],
-    queryFn: () => getUsers(1, PAGE_SIZE)
+  const { data, isLoading, error, isFetching } = useQuery<PaginatedResponse<User>>({
+    queryKey: ['users', currentPage],
+    queryFn: () => getUsers(currentPage, PAGE_SIZE)
   });
 
   console.log(queryClient);
@@ -174,6 +176,19 @@ const Users = () => {
     deleteStudentMutation.isPending ||
     isUpdating ||
     isFetching;
+
+  // Pagination handlers
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (data?.meta.pageCount && currentPage < data.meta.pageCount) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
 
   // Loading State
   if (isLoading) {
@@ -360,13 +375,29 @@ const Users = () => {
           Jami {data?.meta.total} ta foydalanuvchi
         </div>
         <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={handlePrevPage}
+            disabled={currentPage === 1}
+            className={`px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg transition-colors ${
+              currentPage === 1 
+                ? 'opacity-50 cursor-not-allowed' 
+                : 'hover:bg-gray-50'
+            }`}
+          >
             Oldingi
           </button>
           <span className="px-3 py-1.5 text-sm font-medium text-gray-700">
-            {data?.meta.page} / {data?.meta.pageCount}
+            {currentPage} / {data?.meta.pageCount}
           </span>
-          <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={handleNextPage}
+            disabled={!data?.meta.pageCount || currentPage >= data.meta.pageCount}
+            className={`px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg transition-colors ${
+              !data?.meta.pageCount || currentPage >= data.meta.pageCount
+                ? 'opacity-50 cursor-not-allowed' 
+                : 'hover:bg-gray-50'
+            }`}
+          >
             Keyingi
           </button>
         </div>

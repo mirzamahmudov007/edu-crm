@@ -65,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
       ];
 
   const user: User = {
-    name: role === 'admin' ? 'Admin' : 'Teacher',
+    name: role === 'SUPER_ADMIN' ? 'Admin' : 'Teacher',
     avatar: "https://randomuser.me/api/portraits/men/32.jpg",
   };
 

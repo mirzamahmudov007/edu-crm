@@ -24,15 +24,32 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await login(formData);
-      // Store the token in localStorage or your preferred storage
-      localStorage.setItem('token', response.token);
-      console.log(response.user.role);
+      // Telefon raqamini +998 formatida yuborish
+      const loginData = {
+        ...formData,
+        phone: formData.phone.startsWith('+') ? formData.phone : `+${formData.phone}`
+      };
+
+      const response = await login(loginData);
       
+      // Token va rol ma'lumotlarini saqlash
+      localStorage.setItem('token', response.token);
       localStorage.setItem('role', response.user.role);
-      navigate('/dashboard');
+
+      // SUPER_ADMIN yoki ADMIN bo'lsa dashboardga yo'naltirish
+      if (response.user.role === 'SUPER_ADMIN' || response.user.role === 'ADMIN') {
+        navigate('/dashboard', { replace: true });
+      }
+      else if (response.user.role === 'TEACHER') {
+        navigate('/teacher', { replace: true });
+      }
+      else {
+        setError('Sizda tizimga kirish huquqi yo\'q');
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');  
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(err.response?.data?.message || 'Kirishda xatolik yuz berdi. Qaytadan urinib ko\'ring.');
     } finally {
       setLoading(false);
     }
@@ -68,7 +85,11 @@ const Login = () => {
                 </div>
                 <PhoneInput
                   value={formData.phone}
-                  onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
+                  onChange={(value) => {
+                    // Telefon raqamini +998 formatida saqlash
+                    const formattedValue = value.startsWith('+') ? value : `+${value}`;
+                    setFormData(prev => ({ ...prev, phone: formattedValue }));
+                  }}
                   className="pl-10"
                   required
                 />

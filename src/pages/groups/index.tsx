@@ -5,17 +5,19 @@ import { useState } from 'react';
 import { CreateGroupModal } from '../../components/Modals/CreateGroupModal';
 import { EditGroupModal } from '../../components/Modals/EditGroupModal';
 import { DeleteConfirmationModal } from '../../components/Modals/DeleteConfirmationModal';
+import type { Group, PaginatedResponse } from '../../types/group';
 
 const Groups = () => {
   const [createModal, setCreateModal] = useState(false);
   const [editModal, setEditModal] = useState<null | { id: string }>(null);
   const [deleteModal, setDeleteModal] = useState<null | { group: any }>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['groups', 1],
-    queryFn: () => getGroups(1, 10)
+  const { data, isLoading, error, isFetching } = useQuery<PaginatedResponse<Group>>({
+    queryKey: ['groups', currentPage],
+    queryFn: () => getGroups(currentPage, 10)
   });
 
   const deleteGroupMutation = useMutation({
@@ -86,6 +88,19 @@ const Groups = () => {
     deleteGroupMutation.isPending ||
     isUpdating ||
     isFetching;
+
+  // Pagination handlers
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (data?.meta.pageCount && currentPage < data.meta.pageCount) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -241,13 +256,29 @@ const Groups = () => {
           Jami {data?.meta.total} ta guruh
         </div>
         <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={handlePrevPage}
+            disabled={currentPage === 1}
+            className={`px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg transition-colors ${
+              currentPage === 1 
+                ? 'opacity-50 cursor-not-allowed' 
+                : 'hover:bg-gray-50'
+            }`}
+          >
             Oldingi
           </button>
           <span className="px-3 py-1.5 text-sm font-medium text-gray-700">
-            {data?.meta.page} / {data?.meta.pageCount}
+            {currentPage} / {data?.meta.pageCount}
           </span>
-          <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={handleNextPage}
+            disabled={!data?.meta.pageCount || currentPage >= data.meta.pageCount}
+            className={`px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg transition-colors ${
+              !data?.meta.pageCount || currentPage >= data.meta.pageCount
+                ? 'opacity-50 cursor-not-allowed' 
+                : 'hover:bg-gray-50'
+            }`}
+          >
             Keyingi
           </button>
         </div>
