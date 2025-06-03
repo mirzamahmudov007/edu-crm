@@ -16,7 +16,7 @@ interface HeaderProps {
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/users': 'Foydalanuvchilar',
-  '/groups': 'Gruhlar',
+  '/groups': 'Guruhlar',
   '/tests': 'Testlar',
   '/upload': 'Upload',
 };
