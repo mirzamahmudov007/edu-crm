@@ -3,8 +3,7 @@ import { RiCloseLine, RiUploadCloudLine, RiArrowRightLine } from 'react-icons/ri
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { uploadFile, createQuiz } from '../../services/quizService';
 import TeacherSelect from '../TeacherSelect';
-import { getGroups } from '../../services/groupService';
-import { useQuery } from '@tanstack/react-query';
+import GroupSelect from '../GroupSelect';
 
 interface CreateQuizModalProps {
   isOpen: boolean;
@@ -29,24 +28,30 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string>('');
-  const [formError, setFormError] = useState<string>('');
+  const [formErrors, setFormErrors] = useState({
+    title: '',
+    questionCount: '',
+    file: '',
+    startDate: '',
+    duration: '',
+    teacherId: '',
+    groupId: '',
+  });
   const [activeTab, setActiveTab] = useState<'file' | 'details'>('file');
   const queryClient = useQueryClient();
 
-  const { data: groups } = useQuery({
-    queryKey: ['groups'],
-    queryFn: () => getGroups(1, 100)
-  });
-
+ 
   const uploadMutation = useMutation({
     mutationFn: uploadFile,
     onSuccess: (data) => {
       setFormData(prev => ({ ...prev, file: data.fileUrl }));
       setUploadError('');
+      setFormErrors(prev => ({ ...prev, file: '' }));
       setActiveTab('details');
     },
     onError: () => {
       setUploadError('Fayl yuklashda xatolik yuz berdi');
+      setFormErrors(prev => ({ ...prev, file: 'Fayl yuklashda xatolik yuz berdi' }));
     }
   });
 
@@ -58,7 +63,10 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
       onClose();
     },
     onError: () => {
-      setFormError('Test yaratishda xatolik yuz berdi');
+      setFormErrors(prev => ({
+        ...prev,
+        title: 'Test yaratishda xatolik yuz berdi'
+      }));
     }
   });
 
@@ -67,6 +75,7 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
     if (file) {
       if (file.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
         setUploadError('Faqat .docx formatidagi fayllar qabul qilinadi');
+        setFormErrors(prev => ({ ...prev, file: 'Faqat .docx formatidagi fayllar qabul qilinadi' }));
         return;
       }
       setSelectedFile(file);
@@ -74,14 +83,50 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
     }
   };
 
+  const validateForm = () => {
+    const errors = {
+      title: '',
+      questionCount: '',
+      file: '',
+      startDate: '',
+      duration: '',
+      teacherId: '',
+      groupId: '',
+    };
+
+    if (!formData.title.trim()) {
+      errors.title = 'Test nomi kiritilishi shart';
+    }
+
+    if (!formData.file) {
+      errors.file = 'Test fayli yuklanishi shart';
+    }
+
+    if (!formData.startDate) {
+      errors.startDate = 'Boshlash vaqti tanlanishi shart';
+    }
+
+    if (!formData.duration || formData.duration < 1) {
+      errors.duration = 'Davomiyligi noto\'g\'ri';
+    }
+
+    if (!formData.teacherId) {
+      errors.teacherId = 'O\'qituvchi tanlanishi shart';
+    }
+
+    if (!formData.groupId) {
+      errors.groupId = 'Guruh tanlanishi shart';
+    }
+
+    setFormErrors(errors);
+    return !Object.values(errors).some(error => error !== '');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.file) {
-      setFormError('Iltimos, test faylini yuklang');
-      setActiveTab('file');
-      return;
+    if (validateForm()) {
+      createQuizMutation.mutate(formData);
     }
-    createQuizMutation.mutate(formData);
   };
 
   if (!isOpen) return null;
@@ -158,8 +203,8 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
                     Tanlangan fayl: {selectedFile.name}
                   </p>
                 )}
-                {uploadError && (
-                  <p className="mt-2 text-sm text-rose-500">{uploadError}</p>
+                {(uploadError || formErrors.file) && (
+                  <p className="mt-2 text-sm text-rose-500">{uploadError || formErrors.file}</p>
                 )}
               </div>
 
@@ -191,10 +236,20 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, title: e.target.value }));
+                    if (formErrors.title) {
+                      setFormErrors(prev => ({ ...prev, title: '' }));
+                    }
+                  }}
+                  className={`w-full px-4 py-2 rounded-xl border ${
+                    formErrors.title ? 'border-rose-500' : 'border-gray-200'
+                  } focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none`}
                   required
                 />
+                {formErrors.title && (
+                  <p className="mt-1 text-sm text-rose-500">{formErrors.title}</p>
+                )}
               </div>
 
               <div>
@@ -204,11 +259,21 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
                 <input
                   type="number"
                   value={formData.questionCount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, questionCount: parseInt(e.target.value) }))}
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, questionCount: parseInt(e.target.value) }));
+                    if (formErrors.questionCount) {
+                      setFormErrors(prev => ({ ...prev, questionCount: '' }));
+                    }
+                  }}
+                  className={`w-full px-4 py-2 rounded-xl border ${
+                    formErrors.questionCount ? 'border-rose-500' : 'border-gray-200'
+                  } focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none`}
                   required
                   min="1"
                 />
+                {formErrors.questionCount && (
+                  <p className="mt-1 text-sm text-rose-500">{formErrors.questionCount}</p>
+                )}
               </div>
 
               <div>
@@ -218,10 +283,20 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
                 <input
                   type="datetime-local"
                   value={formData.startDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, startDate: e.target.value }));
+                    if (formErrors.startDate) {
+                      setFormErrors(prev => ({ ...prev, startDate: '' }));
+                    }
+                  }}
+                  className={`w-full px-4 py-2 rounded-xl border ${
+                    formErrors.startDate ? 'border-rose-500' : 'border-gray-200'
+                  } focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none`}
                   required
                 />
+                {formErrors.startDate && (
+                  <p className="mt-1 text-sm text-rose-500">{formErrors.startDate}</p>
+                )}
               </div>
 
               <div>
@@ -231,30 +306,37 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
                 <input
                   type="number"
                   value={formData.duration}
-                  onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) }));
+                    if (formErrors.duration) {
+                      setFormErrors(prev => ({ ...prev, duration: '' }));
+                    }
+                  }}
+                  className={`w-full px-4 py-2 rounded-xl border ${
+                    formErrors.duration ? 'border-rose-500' : 'border-gray-200'
+                  } focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none`}
                   required
                   min="1"
                 />
+                {formErrors.duration && (
+                  <p className="mt-1 text-sm text-rose-500">{formErrors.duration}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Guruh
                 </label>
-                <select
+                <GroupSelect
                   value={formData.groupId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, groupId: e.target.value }))}
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                  required
-                >
-                  <option value="">Guruhni tanlang</option>
-                  {groups?.data.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, groupId: value }));
+                    if (formErrors.groupId) {
+                      setFormErrors(prev => ({ ...prev, groupId: '' }));
+                    }
+                  }}
+                  error={formErrors.groupId}
+                />
               </div>
 
               <div>
@@ -263,13 +345,15 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
                 </label>
                 <TeacherSelect
                   value={formData.teacherId}
-                  onChange={(value) => setFormData(prev => ({ ...prev, teacherId: value }))}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, teacherId: value }));
+                    if (formErrors.teacherId) {
+                      setFormErrors(prev => ({ ...prev, teacherId: '' }));
+                    }
+                  }}
+                  error={formErrors.teacherId}
                 />
               </div>
-
-              {formError && (
-                <p className="text-sm text-rose-500">{formError}</p>
-              )}
 
               <div className="flex justify-end gap-3 pt-4">
                 <button

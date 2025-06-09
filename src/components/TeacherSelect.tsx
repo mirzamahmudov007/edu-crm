@@ -5,9 +5,10 @@ import { getTeachers } from '../services/teacherService';
 interface TeacherSelectProps {
   value: string;
   onChange: (value: string) => void;
+  error?: string;
 }
 
-const TeacherSelect: React.FC<TeacherSelectProps> = ({ value, onChange }) => {
+const TeacherSelect: React.FC<TeacherSelectProps> = ({ value, onChange, error }) => {
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -32,6 +33,13 @@ const TeacherSelect: React.FC<TeacherSelectProps> = ({ value, onChange }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Reset search when value changes
+  useEffect(() => {
+    if (value) {
+      setSearch('');
+    }
+  }, [value]);
+
   const filteredTeachers = teachers?.data.filter(teacher => 
     `${teacher.firstName} ${teacher.lastName}`.toLowerCase().includes(search.toLowerCase())
   );
@@ -45,10 +53,15 @@ const TeacherSelect: React.FC<TeacherSelectProps> = ({ value, onChange }) => {
         onChange={(e) => {
           setSearch(e.target.value);
           setIsOpen(true);
+          if (value) {
+            onChange(''); // Clear selection when searching
+          }
         }}
         onFocus={() => setIsOpen(true)}
         placeholder="O'qituvchini qidirish..."
-        className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+        className={`w-full px-4 py-2 rounded-xl border ${
+          error ? 'border-rose-500' : 'border-gray-200'
+        } focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none`}
       />
       {isOpen && (
         <div 
@@ -79,6 +92,7 @@ const TeacherSelect: React.FC<TeacherSelectProps> = ({ value, onChange }) => {
           )}
         </div>
       )}
+      {error && <p className="mt-1 text-sm text-rose-500">{error}</p>}
     </div>
   );
 };
