@@ -6,6 +6,7 @@ import { MainLayout } from '../layouts/MainLayout';
 import Login from '../pages/login';
 import Users from '../pages/users';
 import Groups from '../pages/groups';
+import Tests from '../pages/tests';
 
 // Get user role from localStorage (or default to 'admin')
 let role = 'admin';
@@ -29,7 +30,7 @@ const adminRoutes = [
   },
   {
     path: 'tests',
-    element: <div>Tests Page</div>,
+    element: <Tests/>,
   },
   {
     path: 'upload',
