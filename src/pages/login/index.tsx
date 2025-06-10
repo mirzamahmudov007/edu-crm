@@ -41,7 +41,7 @@ const Login = () => {
         navigate('/dashboard', { replace: true });
       }
       else if (response.user.role === 'TEACHER') {
-        navigate('/teacher', { replace: true });
+        navigate('/dashboard', { replace: true });
       }
       else {
         setError('Sizda tizimga kirish huquqi yo\'q');
