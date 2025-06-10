@@ -43,6 +43,14 @@ const teacherRoutes = [
     path: 'dashboard',
     element: <Dashboard/>,
   },
+  {
+    path: 'groups',
+    element: <Groups/>,
+  },
+  {
+    path: 'tests',
+    element: <Tests/>,
+  },
 ];
 
 const router = createBrowserRouter([

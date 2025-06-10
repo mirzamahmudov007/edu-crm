@@ -1,19 +1,40 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getQuizzes } from '../../services/quizService';
-import { RiAddLine, RiFileListLine, RiTimeLine, RiQuestionLine, RiCalendarLine } from 'react-icons/ri';
+import  { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getQuizzes, deleteQuiz, updateQuiz } from '../../services/quizService';
+import { RiAddLine, RiFileListLine, RiTimeLine, RiQuestionLine, RiCalendarLine, RiEditLine, RiDeleteBinLine } from 'react-icons/ri';
 import { CreateQuizModal } from '../../components/Modals/CreateQuizModal';
+import { EditQuizModal } from '../../components/Modals/EditQuizModal';
 import type { Quiz } from '../../types/quiz';
-import type { PaginatedResponse } from '../../types/common';
 
 const Tests = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [createModal, setCreateModal] = useState(false);
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const PAGE_SIZE = 10;
+  const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery<PaginatedResponse<Quiz>>({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['quizzes', currentPage],
     queryFn: () => getQuizzes(currentPage, PAGE_SIZE)
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteQuiz(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      setIsDeleteModalOpen(false);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateQuiz(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      setIsEditModalOpen(false);
+      setSelectedQuiz(null);
+    },
   });
 
   // Pagination handlers
@@ -31,6 +52,28 @@ const Tests = () => {
 
   const handleCloseModal = () => {
     setCreateModal(false);
+  };
+
+  const handleEdit = (quiz: Quiz) => {
+    setSelectedQuiz(quiz);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = (quiz: Quiz) => {
+    setSelectedQuiz(quiz);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedQuiz) {
+      deleteMutation.mutate(selectedQuiz.id);
+    }
+  };
+
+  const handleSave = (data: any) => {
+    if (selectedQuiz) {
+      updateMutation.mutate({ id: selectedQuiz.id, data });
+    }
   };
 
   if (isLoading) {
@@ -59,29 +102,38 @@ const Tests = () => {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
       <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Testlar</h1>
-          <p className="text-gray-600 mt-1">Barcha testlar ro'yxati</p>
-        </div>
-        <button 
+        <h1 className="text-xl font-bold text-gray-900">Testlar</h1>
+        <button
           onClick={() => setCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-violet-500 text-white rounded-xl hover:from-blue-600 hover:to-violet-600 transition-all duration-300 shadow-sm"
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <RiAddLine size={20} />
-          <span>Yangi test</span>
+          Yangi test
         </button>
       </div>
 
-      {/* Desktop Table */}
-      <div className="hidden md:block">
+      <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Test nomi</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Davomiyligi</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Savollar soni</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Boshlash vaqti</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-500">Holati</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Test nomi
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Davomiyligi
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Savollar soni
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Boshlash vaqti
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Holati
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Amallar
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -110,63 +162,48 @@ const Tests = () => {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <RiCalendarLine className="text-gray-400" size={16} />
-                    <span>{quiz.startDate}</span>
+                    <span>{new Date(quiz.startDate).toLocaleString()}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <span className={`
-                    inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
-                    ${quiz.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 
-                      quiz.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
-                      'bg-gray-100 text-gray-800'}
-                  `}>
-                    {quiz.status}
+                <td className="px-6 py-4 text-sm">
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      quiz.status === 'active'
+                        ? 'bg-green-100 text-green-800'
+                        : quiz.status === 'completed'
+                        ? 'bg-gray-100 text-gray-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {quiz.status === 'active'
+                      ? 'Faol'
+                      : quiz.status === 'completed'
+                      ? 'Yakunlangan'
+                      : 'Kutilmoqda'}
                   </span>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEdit(quiz)}
+                      className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Tahrirlash"
+                    >
+                      <RiEditLine size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(quiz)}
+                      className="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="O'chirish"
+                    >
+                      <RiDeleteBinLine size={18} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Mobile List */}
-      <div className="md:hidden divide-y divide-gray-100">
-        {data?.data.map((quiz: Quiz) => (
-          <div key={quiz.id} className="p-4 hover:bg-gray-50/50 transition-all duration-300 animate-fadeIn">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-violet-100 flex items-center justify-center">
-                <RiFileListLine className="text-blue-600" size={24} />
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">{quiz.title}</h3>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <RiTimeLine className="text-gray-400" size={14} />
-                  <span>{quiz.duration} daqiqa</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2 pl-15">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <RiQuestionLine className="text-gray-400" size={14} />
-                <span>Savollar soni: {quiz.questionCount} ta</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <RiCalendarLine className="text-gray-400" size={14} />
-                <span>Boshlash vaqti: {quiz.startDate}</span>
-              </div>
-              <div>
-                <span className={`
-                  inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
-                  ${quiz.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 
-                    quiz.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
-                    'bg-gray-100 text-gray-800'}
-                `}>
-                  {quiz.status}
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
 
       <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
@@ -208,6 +245,44 @@ const Tests = () => {
           onClose={handleCloseModal}
           onSave={handleCloseModal}
         />
+      )}
+
+      {isEditModalOpen && selectedQuiz && (
+        <EditQuizModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedQuiz(null);
+          }}
+          quizId={selectedQuiz.id}
+          onSave={handleSave}
+        />
+      )}
+
+      {isDeleteModalOpen && selectedQuiz && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Testni o'chirish</h2>
+            <p className="text-gray-600 mb-6">
+              "{selectedQuiz.title}" testini o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Bekor qilish
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleteMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleteMutation.isPending ? 'O\'chirilmoqda...' : 'O\'chirish'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

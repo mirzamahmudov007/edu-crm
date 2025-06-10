@@ -1,13 +1,24 @@
+
 export interface Quiz {
   id: string;
   title: string;
-  createdAt: string;
-  updatedAt: string;
+  questionCount: number;
   file: string;
-  groupId: string;
   startDate: string;
   duration: number;
   teacherId: string;
-  questionCount: number;
-  status: string;
+  groupId: string;
+  status: 'pending' | 'active' | 'completed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    pageSize: number;
+    pageCount: number;
+  };
 } 

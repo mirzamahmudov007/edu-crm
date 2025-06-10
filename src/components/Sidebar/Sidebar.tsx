@@ -34,7 +34,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
           icon: <RiDashboard3Fill size={24} className="text-blue-400" />, 
           label: "Dashboard", 
           path: "/dashboard"
-        }
+        },{
+          icon: <RiTeamFill size={24} className="text-amber-400" />, 
+          label: "Guruhlar", 
+          path: "/groups"
+        },
+        {
+          icon: <RiFileListFill size={24} className="text-rose-400" />, 
+          label: "Testlar", 
+          path: "/tests"
+        },
       ]
     : [
         {
