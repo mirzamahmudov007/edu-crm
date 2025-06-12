@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getGroups, deleteGroup, updateGroup, createGroup } from '../../services/groupService';
-import { RiEditLine, RiDeleteBinLine, RiGroupLine, RiUserLine, RiAddLine, RiSearchLine, RiFilterLine } from 'react-icons/ri';
+import { RiEditLine, RiDeleteBinLine, RiGroupLine, RiUserLine, RiAddLine, RiSearchLine, RiFilterLine, RiEyeLine } from 'react-icons/ri';
 import { useState } from 'react';
 import { CreateGroupModal } from '../../components/Modals/CreateGroupModal';
 import { EditGroupModal } from '../../components/Modals/EditGroupModal';
 import { DeleteConfirmationModal } from '../../components/Modals/DeleteConfirmationModal';
 import type { Group, PaginatedResponse } from '../../types/group';
+import { useNavigate } from 'react-router-dom';
 
 const Groups = () => {
   const [createModal, setCreateModal] = useState(false);
@@ -16,6 +17,7 @@ const Groups = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const navigate = useNavigate();
 
   const { data, isLoading, error, isFetching } = useQuery<PaginatedResponse<Group>>({
     queryKey: ['groups', currentPage],
@@ -102,6 +104,10 @@ const Groups = () => {
     if (data?.meta.pageCount && currentPage < data.meta.pageCount) {
       setCurrentPage(prev => prev + 1);
     }
+  };
+
+  const handleViewDetails = (group: Group) => {
+    navigate(`/groups/${group.id}`);
   };
 
   if (isLoading) {
@@ -260,6 +266,12 @@ const Groups = () => {
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        onClick={() => handleViewDetails(group)}
+                      >
+                        <RiEyeLine size={18} />
+                      </button>
+                      <button 
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         onClick={() => handleEdit(group)}
                       >
                         <RiEditLine size={18} />
@@ -306,6 +318,12 @@ const Groups = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <button 
+                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  onClick={() => handleViewDetails(group)}
+                >
+                  <RiEyeLine size={18} />
+                </button>
                 <button 
                   className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                   onClick={() => handleEdit(group)}

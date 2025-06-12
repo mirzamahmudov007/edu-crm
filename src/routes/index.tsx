@@ -5,7 +5,9 @@ import NotFound from '../pages/NotFound';
 import { MainLayout } from '../layouts/MainLayout';
 import Login from '../pages/login';
 import Users from '../pages/users';
+import UserDetails from '../pages/users/UserDetails';
 import Groups from '../pages/groups';
+import GroupDetails from '../pages/groups/GroupDetails';
 import Tests from '../pages/tests';
 
 // Get user role from localStorage (or default to 'admin')
@@ -25,8 +27,16 @@ const adminRoutes = [
     element: <Users/>,
   },
   {
+    path: 'users/:id',
+    element: <UserDetails />,
+  },
+  {
     path: 'groups',
     element: <Groups/>,
+  },
+  {
+    path: 'groups/:id',
+    element: <GroupDetails />,
   },
   {
     path: 'tests',
@@ -46,6 +56,10 @@ const teacherRoutes = [
   {
     path: 'groups',
     element: <Groups/>,
+  },
+  {
+    path: 'groups/:id',
+    element: <GroupDetails />,
   },
   {
     path: 'tests',

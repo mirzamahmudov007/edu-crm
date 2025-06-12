@@ -9,6 +9,7 @@ import { UserDetailsModal } from '../../components/Modals/UserDetailsModal';
 import { useState } from 'react';
 import { DeleteConfirmationModal } from '../../components/Modals/DeleteConfirmationModal';
 import type { User, PaginatedResponse } from '../../types/user';
+import { useNavigate } from 'react-router-dom';
 
 // Types
 interface EditModalState {
@@ -35,6 +36,7 @@ const Users = () => {
   const [detailsModal, setDetailsModal] = useState<DetailsModalState | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const navigate = useNavigate();
 
   // Queries
   const { data, isLoading, error, isFetching } = useQuery<PaginatedResponse<User>>({
@@ -200,7 +202,7 @@ const Users = () => {
   };
 
   const handleViewDetails = (user: User) => {
-    setDetailsModal({ userId: user.id, userRole: user.role });
+    navigate(`/users/${user.id}?role=${user.role}`);
   };
 
   // Loading State
