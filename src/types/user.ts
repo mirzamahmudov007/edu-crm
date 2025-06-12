@@ -3,7 +3,8 @@ export interface User {
   phone: string;
   firstName: string;
   lastName: string;
-  role: 'TEACHER' | 'STUDENT' | 'ADMIN';
+  role: 'TEACHER' | 'STUDENT' | 'ADMIN' | 'SUPER_ADMIN';
+  status: 'ACTIVE' | 'INACTIVE';
   groupId?: string;
   createdAt: string;
   updatedAt: string;
