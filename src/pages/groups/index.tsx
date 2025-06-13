@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getGroups, deleteGroup, updateGroup, createGroup } from '../../services/groupService';
-import { RiEditLine, RiDeleteBinLine, RiGroupLine, RiUserLine, RiAddLine, RiSearchLine, RiFilterLine, RiEyeLine } from 'react-icons/ri';
+import { RiEditLine, RiDeleteBinLine, RiGroupLine, RiUserLine, RiAddLine, RiEyeLine } from 'react-icons/ri';
 import { useState } from 'react';
 import { CreateGroupModal } from '../../components/Modals/CreateGroupModal';
 import { EditGroupModal } from '../../components/Modals/EditGroupModal';
@@ -15,8 +15,7 @@ const Groups = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, _] = useState(false);
   const navigate = useNavigate();
 
   const { data, isLoading, error, isFetching } = useQuery<PaginatedResponse<Group>>({
@@ -151,7 +150,7 @@ const Groups = () => {
         </div>
 
         {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        {/* <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative w-full sm:w-80">
             <input
               type="text"
@@ -173,7 +172,7 @@ const Groups = () => {
             <RiFilterLine size={18} />
             <span>Filter</span>
           </button>
-        </div>
+        </div> */}
 
         {/* Filter Panel */}
         {showFilters && (

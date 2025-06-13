@@ -1,7 +1,11 @@
 import axiosInstance from "../api/axiosInstance";
+import type { Quiz } from '../types/quiz';
 
-export const getQuizzes = (page: number = 1, pageSize: number = 10) => {
-  return axiosInstance.get(`/quiz?page=${page}&pageSize=${pageSize}`).then((res) => res.data);
+export const getQuizzes = async (page: number = 1, pageSize: number = 10) => {
+  const response = await axiosInstance.get(`/quiz`, {
+    params: { page, pageSize },
+  });
+  return response.data;
 };
 
 export const getQuizById = (id: string) => {
@@ -22,30 +26,21 @@ export const uploadFile = (file: File) => {
   }).then((res) => res.data);
 };
 
-export const createQuiz = (data: {
-  title: string;
-  questionCount: number;
-  file: string;
-  startDate: string;
-  duration: number;
-  teacherId: string;
-  groupId: string;
-}) => {
-  return axiosInstance.post('/quiz', data).then((res) => res.data);
+export const getQuizQuestions = async (id: string, params?: { page?: number; pageSize?: number }) => {
+  const response = await axiosInstance.get(`/quiz/${id}/questions`, { params });
+  return response.data;
 };
 
-export const updateQuiz = (id: string, data: {
-  title: string;
-  questionCount: number;
-  file: string;
-  startDate: string;
-  duration: number;
-  teacherId: string;
-  groupId: string;
-}) => {
-  return axiosInstance.put(`/quiz/${id}`, data).then((res) => res.data);
+export const createQuiz = async (data: any) => {
+  const response = await axiosInstance.post<Quiz>('/quiz', data);
+  return response.data;
 };
 
-export const deleteQuiz = (id: string) => {
-  return axiosInstance.delete(`/quiz/${id}`).then((res) => res.data);
+export const updateQuiz = async (id: string, data: any) => {
+  const response = await axiosInstance.put<Quiz>(`/quiz/${id}`, data);
+  return response.data;
+};
+
+export const deleteQuiz = async (id: string) => {
+  await axiosInstance.delete(`/quiz/${id}`);
 };

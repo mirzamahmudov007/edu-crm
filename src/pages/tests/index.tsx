@@ -1,10 +1,11 @@
 import  { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getQuizzes, deleteQuiz, updateQuiz } from '../../services/quizService';
-import { RiAddLine, RiFileListLine, RiTimeLine, RiQuestionLine, RiCalendarLine, RiEditLine, RiDeleteBinLine, RiSearchLine, RiFilterLine } from 'react-icons/ri';
+import { RiAddLine, RiFileListLine, RiTimeLine, RiQuestionLine, RiCalendarLine, RiEditLine, RiDeleteBinLine, RiEyeLine } from 'react-icons/ri';
 import { CreateQuizModal } from '../../components/Modals/CreateQuizModal';
 import { EditQuizModal } from '../../components/Modals/EditQuizModal';
 import type { Quiz } from '../../types/quiz';
+import { Link } from 'react-router-dom';
 
 const Tests = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -12,8 +13,7 @@ const Tests = () => {
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, _] = useState(false);
   const PAGE_SIZE = 10;
   const queryClient = useQueryClient();
 
@@ -119,7 +119,7 @@ const Tests = () => {
         </div>
 
         {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        {/* <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative w-full sm:w-80">
             <input
               type="text"
@@ -141,7 +141,7 @@ const Tests = () => {
             <RiFilterLine size={18} />
             <span>Filter</span>
           </button>
-        </div>
+        </div> */}
 
         {/* Filter Panel */}
         {showFilters && (
@@ -258,6 +258,13 @@ const Tests = () => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link
+                      to={`/tests/${quiz.id}`}
+                      className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Ko'rish"
+                    >
+                      <RiEyeLine size={18} />
+                    </Link>
                     <button
                       onClick={() => handleEdit(quiz)}
                       className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"

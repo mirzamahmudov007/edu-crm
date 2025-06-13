@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUsers, deleteTeacher, deleteStudent, updateTeacher, updateStudent, createTeacher, createStudent } from '../../services/userService';
 import { format } from 'date-fns';
-import { RiEditLine, RiDeleteBinLine, RiUserLine, RiPhoneLine, RiShieldLine, RiTimeLine, RiAddLine, RiEyeLine, RiSearchLine, RiFilterLine } from 'react-icons/ri';
+import { RiEditLine, RiDeleteBinLine, RiUserLine, RiPhoneLine, RiShieldLine, RiTimeLine, RiAddLine, RiEyeLine } from 'react-icons/ri';
 import { EditTeacherModal } from '../../components/Modals/EditTeacherModal';
 import { EditStudentModal } from '../../components/Modals/EditStudentModal';
 import { CreateUserModal } from '../../components/Modals/CreateUserModal';
@@ -34,8 +34,7 @@ const Users = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const queryClient = useQueryClient();
   const [detailsModal, setDetailsModal] = useState<DetailsModalState | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, _] = useState(false);
   const navigate = useNavigate();
 
   // Queries
@@ -249,7 +248,7 @@ const Users = () => {
         </div>
 
         {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        {/* <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative w-full sm:w-80">
             <input
               type="text"
@@ -271,7 +270,7 @@ const Users = () => {
             <RiFilterLine size={18} />
             <span>Filter</span>
           </button>
-        </div>
+        </div> */}
 
         {/* Filter Panel */}
         {showFilters && (
