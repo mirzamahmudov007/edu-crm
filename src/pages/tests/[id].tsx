@@ -1,23 +1,41 @@
-import { useQuery } from '@tanstack/react-query';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { getQuizQuestions } from '../../services/quizService';
-import { RiArrowLeftLine, RiTimeLine, RiQuestionLine, RiCalendarLine, RiArrowRightLine, RiArrowLeftSLine } from 'react-icons/ri';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { getQuizByDId } from "../../services/quizService";
+import { RiArrowLeftLine, RiTimeLine, RiQuestionLine, RiCalendarLine } from 'react-icons/ri';
 import { Link } from 'react-router-dom';
 
+interface Quiz {
+  id: string;
+  title: string;
+  duration?: number;
+  questionCount?: number;
+  startDate?: string;
+  status?: string;
+  group?: { name: string };
+}
+
 const TestDetails = () => {
-  const { id } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const page = Number(searchParams.get('page')) || 1;
-  const pageSize = 10;
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['quiz-questions', id, page],
-    queryFn: () => getQuizQuestions(id as string, { page, pageSize })
-  });
-
-  const handlePageChange = (newPage: number) => {
-    setSearchParams({ page: newPage.toString() });
-  };
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      if (!id) return;
+      try {
+        setIsLoading(true);
+        const data = await getQuizByDId(id);
+        setQuiz(data);
+      } catch (error) {
+        setError("Test ma'lumotlarini yuklashda xatolik yuz berdi");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchQuiz();
+  }, [id]);
 
   if (isLoading) {
     return (
@@ -37,13 +55,12 @@ const TestDetails = () => {
   if (error) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="text-rose-500">Error loading test details</div>
+        <div className="text-rose-500">{error}</div>
       </div>
     );
   }
 
-  const quiz = data?.data[0]?.quiz;
-  const totalPages = data?.meta?.pageCount || 1;
+  if (!quiz) return null;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
@@ -57,122 +74,47 @@ const TestDetails = () => {
               <RiArrowLeftLine size={24} />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{quiz?.title}</h1>
-              <p className="text-gray-600 mt-1">Test savollari</p>
+              <h1 className="text-2xl font-bold text-gray-900">{quiz.title}</h1>
+              <p className="text-gray-600 mt-1">Test tafsilotlari</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <RiTimeLine className="text-gray-400" size={16} />
-              <span>{quiz?.duration} daqiqa</span>
+              <span>{quiz.duration ?? '-'} daqiqa</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <RiQuestionLine className="text-gray-400" size={16} />
-              <span>{quiz?.questionCount} ta savol</span>
+              <span>{quiz.questionCount ?? '-'} ta savol</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <RiCalendarLine className="text-gray-400" size={16} />
-              <span>{new Date(quiz?.startDate).toLocaleString()}</span>
+              <span>
+                {quiz.startDate
+                  ? new Date(quiz.startDate).toLocaleString()
+                  : 'Sana yo‘q'}
+              </span>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-6">
-        <div className="space-y-6">
-          {data?.data.map((question: any, index: number) => (
-            <div key={question.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-              <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-medium text-blue-600">{index + 1 + (page - 1) * pageSize}</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">{question.text}</h3>
-                  <div className="space-y-3">
-                    {question.answers.map((answer: any) => (
-                      <div
-                        key={answer.id}
-                        className={`p-4 rounded-lg border ${
-                          answer.isCorrect
-                            ? 'bg-green-50 border-green-200'
-                            : 'bg-white border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              answer.isCorrect ? 'bg-green-100' : 'bg-gray-100'
-                            }`}
-                          >
-                            <span
-                              className={`text-sm font-medium ${
-                                answer.isCorrect ? 'text-green-600' : 'text-gray-600'
-                              }`}
-                            >
-                              {answer.label}
-                            </span>
-                          </div>
-                          <span
-                            className={`text-sm ${
-                              answer.isCorrect ? 'text-green-700' : 'text-gray-700'
-                            }`}
-                          >
-                            {answer.text}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+            {quiz.status && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="capitalize">{quiz.status}</span>
               </div>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
-
-        {/* Pagination */}
-        <div className="mt-8 flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            Jami {data?.meta?.total} ta savol
+        {quiz.group?.name && (
+          <div className="mt-4 text-gray-700">
+            <span className="font-semibold">Guruh: </span>
+            {quiz.group.name}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handlePageChange(page - 1)}
-              disabled={page === 1}
-              className={`p-2 rounded-lg ${
-                page === 1
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <RiArrowLeftSLine size={20} />
-            </button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                <button
-                  key={pageNum}
-                  onClick={() => handlePageChange(pageNum)}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${
-                    pageNum === page
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => handlePageChange(page + 1)}
-              disabled={page === totalPages}
-              className={`p-2 rounded-lg ${
-                page === totalPages
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <RiArrowRightLine size={20} />
-            </button>
-          </div>
+        )}
+        <div className="flex justify-end mt-6">
+          <button
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => navigate(`/tests/${id}/questions`)}
+          >
+            Savollar
+          </button>
         </div>
       </div>
     </div>

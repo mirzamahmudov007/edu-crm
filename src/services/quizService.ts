@@ -9,6 +9,9 @@ export const getQuizzes = async (page: number = 1, pageSize: number = 10) => {
 };
 
 export const getQuizById = (id: string) => {
+  return axiosInstance.get(`/quiz/${id}/questions`).then((res) => res.data);
+};
+export const getQuizByDId = (id: string) => {
   return axiosInstance.get(`/quiz/${id}`).then((res) => res.data);
 };
 

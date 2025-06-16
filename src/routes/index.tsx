@@ -9,6 +9,7 @@ import NotFound from '../pages/NotFound';
 import { MainLayout } from '../layouts/MainLayout';
 import UserDetails from '../pages/users/UserDetails';
 import GroupDetails from '../pages/groups/GroupDetails';
+import TestQuestions from '../pages/tests/TestQuestions';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token');
@@ -52,6 +53,10 @@ const adminRoutes = [
     element: <TestDetails />,
   },
   {
+    path: 'tests/:id/questions',
+    element: <TestQuestions />,
+  },
+  {
     path: 'upload',
     element: <div>Upload Page</div>,
   },
@@ -77,6 +82,10 @@ const teacherRoutes = [
   {
     path: 'tests/:id',
     element: <TestDetails />,
+  },
+  {
+    path: 'tests/:id/questions',
+    element: <TestQuestions />,
   },
 ];
 
