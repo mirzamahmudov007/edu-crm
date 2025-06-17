@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { RiLockLine, RiUserLine } from 'react-icons/ri';
 import { login } from '../../services/authService';
 import { PhoneInput } from '../../components/PhoneInput';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface LoginFormData {
   phone: string;
@@ -38,10 +39,16 @@ const Login = () => {
 
       // SUPER_ADMIN yoki ADMIN bo'lsa dashboardga yo'naltirish
       if (response.user.role === 'SUPER_ADMIN' || response.user.role === 'ADMIN') {
-        navigate('/dashboard', { replace: true });
+        toast.success("Muvaffaqiyatli kirildi!");
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 1000);
       }
       else if (response.user.role === 'TEACHER') {
-        navigate('/dashboard', { replace: true });
+        toast.success("Muvaffaqiyatli kirildi!");
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 1000);
       }
       else {
         setError('Sizda tizimga kirish huquqi yo\'q');
@@ -50,6 +57,7 @@ const Login = () => {
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Kirishda xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+      toast.error(err.response?.data?.message || 'Kirishda xatolik yuz berdi. Qaytadan urinib ko\'ring.', { duration: 2000 });
     } finally {
       setLoading(false);
     }
@@ -57,6 +65,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-violet-50 p-4">
+      <Toaster position="top-right" />
       <div className="w-full max-w-md">
         {/* Logo and Title */}
         <div className="text-center mb-8">

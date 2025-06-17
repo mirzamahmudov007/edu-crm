@@ -122,6 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
                   ${isActive ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-xl" : "text-gray-700"}
                   ${collapsed ? "justify-center px-0" : ""}
                   hover:-translate-y-1
+                  cursor-pointer
                 `}
                 aria-current={isActive ? "page" : undefined}
               >
