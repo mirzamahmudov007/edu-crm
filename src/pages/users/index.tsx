@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUsers, deleteTeacher, deleteStudent, updateTeacher, updateStudent, createTeacher, createStudent } from '../../services/userService';
 import { format } from 'date-fns';
-import { RiEditLine, RiDeleteBinLine, RiUserLine, RiPhoneLine, RiShieldLine, RiTimeLine, RiAddLine, RiEyeLine } from 'react-icons/ri';
+import { RiEditLine, RiDeleteBinLine, RiUserLine, RiPhoneLine, RiShieldLine, RiTimeLine, RiAddLine, RiEyeLine, RiGraduationCapLine, RiBookLine } from 'react-icons/ri';
 import { EditTeacherModal } from '../../components/Modals/EditTeacherModal';
 import { EditStudentModal } from '../../components/Modals/EditStudentModal';
 import { CreateUserModal } from '../../components/Modals/CreateUserModal';
@@ -10,6 +10,9 @@ import { useState } from 'react';
 import { DeleteConfirmationModal } from '../../components/Modals/DeleteConfirmationModal';
 import type { User, PaginatedResponse } from '../../types/user';
 import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Card } from '../../components/ui/Card';
+import { ActionButton } from '../../components/ui/ActionButton';
 
 // Types
 interface EditModalState {
@@ -23,7 +26,7 @@ interface DetailsModalState {
 }
 
 // Constants
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 const Users = () => {
   // State
@@ -34,7 +37,6 @@ const Users = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const queryClient = useQueryClient();
   const [detailsModal, setDetailsModal] = useState<DetailsModalState | null>(null);
-  const [showFilters, _] = useState(false);
   const navigate = useNavigate();
 
   // Queries
@@ -43,8 +45,6 @@ const Users = () => {
     queryFn: () => getUsers(currentPage, PAGE_SIZE)
   });
 
-  console.log(queryClient);
-  
   // Mutations
   const createTeacherMutation = useMutation({
     mutationFn: createTeacher,
@@ -207,15 +207,21 @@ const Users = () => {
   // Loading State
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="space-y-3">
-            <div className="h-12 bg-gray-200 rounded"></div>
-            <div className="h-12 bg-gray-200 rounded"></div>
-            <div className="h-12 bg-gray-200 rounded"></div>
-          </div>
+      <div className="space-y-8">
+        <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-8 animate-pulse">
+          <div className="h-8 bg-white/20 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-white/20 rounded w-1/2"></div>
         </div>
+        <Card className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-12 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -223,288 +229,264 @@ const Users = () => {
   // Error State
   if (error) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="text-rose-500">Error loading users</div>
-      </div>
+      <Card className="p-6">
+        <div className="text-rose-500">Foydalanuvchilarni yuklashda xatolik yuz berdi</div>
+      </Card>
     );
   }
 
+  const headerStats = [
+    {
+      label: 'Jami foydalanuvchilar',
+      value: data?.meta.total || 0,
+      icon: <RiUserLine size={24} />
+    },
+    {
+      label: 'O\'quvchilar',
+      value: data?.data.filter(u => u.role === 'STUDENT').length || 0,
+      icon: <RiGraduationCapLine size={24} />
+    },
+    {
+      label: 'O\'qituvchilar',
+      value: data?.data.filter(u => u.role === 'TEACHER').length || 0,
+      icon: <RiBookLine size={24} />
+    }
+  ];
+
   // Render
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-      <div className="p-6 border-b border-gray-100">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Foydalanuvchilar</h1>
-            <p className="text-gray-600 mt-1">Barcha foydalanuvchilar ro'yxati</p>
-          </div>
-          <button 
+    <div className="space-y-8">
+      {/* Page Header */}
+      <PageHeader
+        title="Foydalanuvchilar"
+        subtitle="Tizim foydalanuvchilarini boshqaring va nazorat qiling"
+        gradient="bg-gradient-to-r from-green-500 to-emerald-500"
+        stats={headerStats}
+        action={
+          <ActionButton
+            variant="secondary"
             onClick={() => setCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-violet-500 text-white rounded-xl hover:from-blue-600 hover:to-violet-600 transition-all duration-300 shadow-sm"
+            icon={<RiAddLine size={20} />}
+            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
           >
-            <RiAddLine size={20} />
-            <span>Yangi foydalanuvchi</span>
-          </button>
-        </div>
+            Yangi foydalanuvchi
+          </ActionButton>
+        }
+      />
 
-        {/* Search and Filter */}
-        {/* <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative w-full sm:w-80">
-            <input
-              type="text"
-              placeholder="F.I.O yoki telefon bo'yicha qidirish..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm"
-            />
-            <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 flex items-center gap-2 whitespace-nowrap shadow-sm ${
-              showFilters 
-                ? 'bg-blue-50 text-blue-600 border-blue-200' 
-                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            <RiFilterLine size={18} />
-            <span>Filter</span>
-          </button>
-        </div> */}
-
-        {/* Filter Panel */}
-        {showFilters && (
-          <div className="mt-4 p-5 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                <select className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm appearance-none">
-                  <option value="">Barcha rollar</option>
-                  <option value="TEACHER">O'qituvchi</option>
-                  <option value="STUDENT">O'quvchi</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Guruh</label>
-                <select className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm appearance-none">
-                  <option value="">Barcha guruhlar</option>
-                  <option value="1">Guruh 1</option>
-                  <option value="2">Guruh 2</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tartib</label>
-                <select className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm appearance-none">
-                  <option value="name_asc">F.I.O (A-Z)</option>
-                  <option value="name_desc">F.I.O (Z-A)</option>
-                  <option value="date_asc">Sana (Eskidan yangi)</option>
-                  <option value="date_desc">Sana (Yangi dan eski)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Desktop Table */}
-      <div className="hidden md:block relative">
+      {/* Users Table */}
+      <Card className="overflow-hidden">
         {isMutating && (
           <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
-            <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  T/R
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  F.I.O
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Telefon
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rol
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Yaratilgan
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amallar
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data?.data.map((user: User, index: number) => (
-                <tr key={user.id} className="group hover:bg-gray-50/50 transition-all duration-300 animate-fadeIn">
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {(currentPage - 1) * PAGE_SIZE + index + 1}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-violet-100 flex items-center justify-center">
-                        <RiUserLine className="text-blue-600" size={20} />
-                      </div>
-                      <span className="text-sm font-medium text-gray-900 transition-all duration-300">{user.firstName} {user.lastName}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <RiPhoneLine className="text-gray-400" size={16} />
-                      <span className="transition-all duration-300">{user.phone}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`
-                      inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300
-                      ${user.role === 'TEACHER' ? 'bg-blue-100 text-blue-800' : 
-                        user.role === 'STUDENT' ? 'bg-green-100 text-green-800' : 
-                        'bg-purple-100 text-purple-800'}
-                    `}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <RiTimeLine className="text-gray-400" size={16} />
-                      <span className="transition-all duration-300">{format(new Date(user.createdAt), 'dd.MM.yyyy HH:mm')}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                        onClick={() => handleViewDetails(user)}
-                        title="Batafsil"
-                      >
-                        <RiEyeLine size={18} />
-                      </button>
-                      <button 
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        onClick={() => handleEdit(user)}
-                        title="Tahrirlash"
-                      >
-                        <RiEditLine size={18} />
-                      </button>
-                      <button 
-                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        onClick={() => handleDelete(user)}
-                        title="O'chirish"
-                      >
-                        <RiDeleteBinLine size={18} />
-                      </button>
-                    </div>
-                  </td>
+        
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">Barcha foydalanuvchilar</h2>
+          <p className="text-sm text-gray-600 mt-1">Tizimda ro'yxatdan o'tgan barcha foydalanuvchilar ro'yxati</p>
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    T/R
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Foydalanuvchi
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Telefon
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Rol
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Yaratilgan
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Amallar
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Mobile Cards */}
-      <div className="md:hidden divide-y divide-gray-100 relative">
-        {isMutating && (
-          <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
-            <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {data?.data.map((user: User, index: number) => (
+                  <tr key={user.id} className="group hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {(currentPage - 1) * PAGE_SIZE + index + 1}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          user.role === 'TEACHER' 
+                            ? 'bg-gradient-to-br from-blue-100 to-violet-100' 
+                            : 'bg-gradient-to-br from-green-100 to-emerald-100'
+                        }`}>
+                          {user.role === 'TEACHER' ? (
+                            <RiBookLine className="text-blue-600" size={20} />
+                          ) : (
+                            <RiGraduationCapLine className="text-green-600" size={20} />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{user.firstName} {user.lastName}</div>
+                          <div className="text-sm text-gray-500">ID: {user.id}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <RiPhoneLine className="text-gray-400" size={16} />
+                        <span>{user.phone}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`
+                        inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                        ${user.role === 'TEACHER' ? 'bg-blue-100 text-blue-800' : 
+                          user.role === 'STUDENT' ? 'bg-green-100 text-green-800' : 
+                          'bg-purple-100 text-purple-800'}
+                      `}>
+                        <RiShieldLine className="mr-1" size={12} />
+                        {user.role === 'TEACHER' ? 'O\'qituvchi' : 
+                         user.role === 'STUDENT' ? 'O\'quvchi' : user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <RiTimeLine className="text-gray-400" size={16} />
+                        <span>{format(new Date(user.createdAt), 'dd.MM.yyyy')}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={() => handleViewDetails(user)}
+                          title="Batafsil"
+                        >
+                          <RiEyeLine size={16} />
+                        </button>
+                        <button 
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={() => handleEdit(user)}
+                          title="Tahrirlash"
+                        >
+                          <RiEditLine size={16} />
+                        </button>
+                        <button 
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          onClick={() => handleDelete(user)}
+                          title="O'chirish"
+                        >
+                          <RiDeleteBinLine size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-        {data?.data.map((user) => (
-          <div key={user.id} className="p-4 hover:bg-gray-50/50 transition-all duration-300 animate-fadeIn">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-violet-100 flex items-center justify-center">
-                  <RiUserLine className="text-blue-600" size={24} />
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-900 transition-all duration-300">{user.firstName} {user.lastName}</h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <RiPhoneLine className="text-gray-400" size={14} />
-                    <span className="transition-all duration-300">{user.phone}</span>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {data?.data.map((user) => (
+            <div key={user.id} className="p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    user.role === 'TEACHER' 
+                      ? 'bg-gradient-to-br from-blue-100 to-violet-100' 
+                      : 'bg-gradient-to-br from-green-100 to-emerald-100'
+                  }`}>
+                    {user.role === 'TEACHER' ? (
+                      <RiBookLine className="text-blue-600" size={24} />
+                    ) : (
+                      <RiGraduationCapLine className="text-green-600" size={24} />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">{user.firstName} {user.lastName}</h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <RiPhoneLine size={14} />
+                      <span>{user.phone}</span>
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    onClick={() => handleViewDetails(user)}
+                  >
+                    <RiEyeLine size={18} />
+                  </button>
+                  <button 
+                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    onClick={() => handleEdit(user)}
+                  >
+                    <RiEditLine size={18} />
+                  </button>
+                  <button 
+                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    onClick={() => handleDelete(user)}
+                  >
+                    <RiDeleteBinLine size={18} />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                  onClick={() => handleViewDetails(user)}
-                  title="Batafsil"
-                >
-                  <RiEyeLine size={18} />
-                </button>
-                <button 
-                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  onClick={() => handleEdit(user)}
-                  title="Tahrirlash"
-                >
-                  <RiEditLine size={18} />
-                </button>
-                <button 
-                  className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                  onClick={() => handleDelete(user)}
-                  title="O'chirish"
-                >
-                  <RiDeleteBinLine size={18} />
-                </button>
-              </div>
-            </div>
-            <div className="space-y-2 pl-15">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <RiShieldLine className="text-gray-400" size={16} />
+              <div className="flex items-center justify-between">
                 <span className={`
-                  inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                  inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
                   ${user.role === 'TEACHER' ? 'bg-blue-100 text-blue-800' : 
                     user.role === 'STUDENT' ? 'bg-green-100 text-green-800' : 
                     'bg-purple-100 text-purple-800'}
                 `}>
-                  {user.role}
+                  {user.role === 'TEACHER' ? 'O\'qituvchi' : 
+                   user.role === 'STUDENT' ? 'O\'quvchi' : user.role}
                 </span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <RiTimeLine className="text-gray-400" size={16} />
-                <span>{format(new Date(user.createdAt), 'dd.MM.yyyy HH:mm')}</span>
+                <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <RiTimeLine size={14} />
+                  <span>{format(new Date(user.createdAt), 'dd.MM.yyyy')}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* Pagination */}
-      <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Jami {data?.meta.total} ta foydalanuvchi
+        {/* Pagination */}
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            Jami {data?.meta.total} ta foydalanuvchi
+          </div>
+          <div className="flex items-center gap-2">
+            <ActionButton
+              variant="secondary"
+              size="sm"
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+            >
+              Oldingi
+            </ActionButton>
+            <span className="px-3 py-1.5 text-sm font-medium text-gray-700">
+              {currentPage} / {data?.meta.pageCount}
+            </span>
+            <ActionButton
+              variant="secondary"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={!data?.meta.pageCount || currentPage >= data.meta.pageCount}
+            >
+              Keyingi
+            </ActionButton>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-            className={`px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg transition-colors ${
-              currentPage === 1 
-                ? 'opacity-50 cursor-not-allowed' 
-                : 'hover:bg-gray-50'
-            }`}
-          >
-            Oldingi
-          </button>
-          <span className="px-3 py-1.5 text-sm font-medium text-gray-700">
-            {currentPage} / {data?.meta.pageCount}
-          </span>
-          <button 
-            onClick={handleNextPage}
-            disabled={!data?.meta.pageCount || currentPage >= data.meta.pageCount}
-            className={`px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg transition-colors ${
-              !data?.meta.pageCount || currentPage >= data.meta.pageCount
-                ? 'opacity-50 cursor-not-allowed' 
-                : 'hover:bg-gray-50'
-            }`}
-          >
-            Keyingi
-          </button>
-        </div>
-      </div>
+      </Card>
 
       {/* Modals */}
       {createModal && (
@@ -555,4 +537,4 @@ const Users = () => {
   );
 };
 
-export default Users; 
+export default Users;
