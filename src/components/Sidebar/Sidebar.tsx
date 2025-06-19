@@ -3,7 +3,15 @@ import {
   RiDashboard3Fill,
   RiGroupFill,
   RiTeamFill,
+<<<<<<< HEAD
   RiFileListFill
+=======
+  RiFileListFill,
+  RiBook2Line,
+  RiGroupLine,
+  RiTrophyLine,
+  RiMenuLine
+>>>>>>> 2067b97 (add)
 } from "react-icons/ri";
 
 interface MenuItem {
@@ -26,6 +34,10 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2067b97 (add)
   // Menu items based on role
   const role = localStorage.getItem('role')?.toLocaleLowerCase();
   const menuItems: MenuItem[] = role === 'teacher'
@@ -66,11 +78,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
           label: "Testlar", 
           path: "/tests"
         },
+<<<<<<< HEAD
         // {
         //   icon: <RiUploadCloudFill size={24} className="text-cyan-400" />, 
         //   label: "Upload", 
         //   path: "/upload"
         // }
+=======
+>>>>>>> 2067b97 (add)
       ];
 
   const user: User = {
@@ -85,6 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
   return (
     <aside 
       className={`
+<<<<<<< HEAD
         bg-gradient-to-b from-white/90 to-blue-50/60 backdrop-blur-xl border-r border-gray-100
         flex flex-col h-screen transition-all duration-300 shadow-xl
         ${collapsed ? "w-20" : "w-64"}
@@ -104,6 +120,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
             </span>
           )}
         </div>
+=======
+        h-screen bg-white border-r border-gray-100 flex flex-col transition-all duration-300
+        ${collapsed ? "w-20" : "w-64"}
+      `}
+    >
+      <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-tr from-indigo-400 to-pink-400 rounded-xl flex items-center justify-center text-white font-bold text-lg">M</div>
+          {!collapsed && <span className="font-bold text-xl text-gray-800">Modernize</span>}
+        </div>
+        {/* Collapse button faqat desktopda ko'rsatiladi */}
+>>>>>>> 2067b97 (add)
       </div>
 
       {/* Menu */}
@@ -117,9 +145,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
                 className={`
                   flex items-center gap-4 w-full px-4 py-3 rounded-xl font-medium text-base transition-all duration-300
                   shadow-sm hover:shadow-lg
+<<<<<<< HEAD
                   bg-white/80 hover:bg-gradient-to-r hover:from-blue-100 hover:to-violet-100
                   border border-transparent hover:border-blue-200
                   ${isActive ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-xl" : "text-gray-700"}
+=======
+                  ${isActive ? "bg-gradient-to-r from-indigo-400 to-pink-400 text-white shadow-xl" : "text-gray-700 bg-white/80 hover:bg-gradient-to-r hover:from-indigo-100 hover:to-pink-100"}
+                  border border-transparent hover:border-indigo-200
+>>>>>>> 2067b97 (add)
                   ${collapsed ? "justify-center px-0" : ""}
                   hover:-translate-y-1
                   cursor-pointer
@@ -150,7 +183,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
       {/* User info */}
       <div 
         className={`
+<<<<<<< HEAD
           border-t border-gray-100 px-6 py-6 
+=======
+          p-4 
+>>>>>>> 2067b97 (add)
           flex items-center gap-3 
           ${collapsed ? "justify-center" : ""}
         `}

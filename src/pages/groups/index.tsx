@@ -140,20 +140,44 @@ const Groups = () => {
     );
   }
 
+<<<<<<< HEAD
   const headerStats = [
     {
       label: 'Jami guruhlar',
       value: data?.meta.total || 0,
+=======
+  // Ensure data exists before rendering
+  if (!data) {
+    return (
+      <Card className="p-6">
+        <div className="text-gray-500">Ma'lumotlar yuklanmoqda...</div>
+      </Card>
+    );
+  }
+
+  const headerStats = [
+    {
+      label: 'Jami guruhlar',
+      value: data.meta?.total || 0,
+>>>>>>> 2067b97 (add)
       icon: <RiGroupLine size={24} />
     },
     {
       label: 'Faol guruhlar',
+<<<<<<< HEAD
       value: data?.data.length || 0,
+=======
+      value: data.data?.length || 0,
+>>>>>>> 2067b97 (add)
       icon: <RiUserLine size={24} />
     },
     {
       label: 'O\'qituvchilar',
+<<<<<<< HEAD
       value: data?.data.filter(g => g.teacher).length || 0,
+=======
+      value: data.data?.filter((g: Group) => g.teacher).length || 0,
+>>>>>>> 2067b97 (add)
       icon: <RiBookLine size={24} />
     }
   ];
@@ -215,7 +239,11 @@ const Groups = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
+<<<<<<< HEAD
                 {data?.data.map((group: Group, index: number) => (
+=======
+                {data.data?.map((group: Group, index: number) => (
+>>>>>>> 2067b97 (add)
                   <tr key={group.id} className="group hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {(currentPage - 1) * 10 + index + 1}
@@ -292,7 +320,11 @@ const Groups = () => {
 
         {/* Mobile Cards */}
         <div className="md:hidden divide-y divide-gray-100">
+<<<<<<< HEAD
           {data?.data.map((group) => (
+=======
+          {data.data?.map((group) => (
+>>>>>>> 2067b97 (add)
             <div key={group.id} className="p-4 hover:bg-gray-50 transition-colors">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -340,7 +372,11 @@ const Groups = () => {
         {/* Pagination */}
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
           <div className="text-sm text-gray-600">
+<<<<<<< HEAD
             Jami {data?.meta.total} ta guruh
+=======
+            Jami {data.meta?.total || 0} ta guruh
+>>>>>>> 2067b97 (add)
           </div>
           <div className="flex items-center gap-2">
             <ActionButton
@@ -352,13 +388,21 @@ const Groups = () => {
               Oldingi
             </ActionButton>
             <span className="px-3 py-1.5 text-sm font-medium text-gray-700">
+<<<<<<< HEAD
               {currentPage} / {data?.meta.pageCount}
+=======
+              {currentPage} / {data.meta?.pageCount || 1}
+>>>>>>> 2067b97 (add)
             </span>
             <ActionButton
               variant="secondary"
               size="sm"
               onClick={handleNextPage}
+<<<<<<< HEAD
               disabled={!data?.meta.pageCount || currentPage >= data.meta.pageCount}
+=======
+              disabled={!data.meta?.pageCount || currentPage >= data.meta.pageCount}
+>>>>>>> 2067b97 (add)
             >
               Keyingi
             </ActionButton>

@@ -135,20 +135,44 @@ const Tests = () => {
     );
   }
 
+<<<<<<< HEAD
   const headerStats = [
     {
       label: 'Jami testlar',
       value: data?.meta.total || 0,
+=======
+  // Ensure data exists before rendering
+  if (!data) {
+    return (
+      <Card className="p-6">
+        <div className="text-gray-500">Ma'lumotlar yuklanmoqda...</div>
+      </Card>
+    );
+  }
+
+  const headerStats = [
+    {
+      label: 'Jami testlar',
+      value: data.meta?.total || 0,
+>>>>>>> 2067b97 (add)
       icon: <RiFileListLine size={24} />
     },
     {
       label: 'Faol testlar',
+<<<<<<< HEAD
       value: data?.data.filter(t => t.status === 'active').length || 0,
+=======
+      value: data.data?.filter((t: Quiz) => t.status === 'active').length || 0,
+>>>>>>> 2067b97 (add)
       icon: <RiPlayLine size={24} />
     },
     {
       label: 'Yakunlangan',
+<<<<<<< HEAD
       value: data?.data.filter(t => t.status === 'completed').length || 0,
+=======
+      value: data.data?.filter((t: Quiz) => t.status === 'completed').length || 0,
+>>>>>>> 2067b97 (add)
       icon: <RiTimeLine size={24} />
     }
   ];
@@ -208,7 +232,11 @@ const Tests = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
+<<<<<<< HEAD
               {data?.data.map((quiz: Quiz, index: number) => (
+=======
+              {data.data?.map((quiz: Quiz, index: number) => (
+>>>>>>> 2067b97 (add)
                 <tr key={quiz.id} className="group hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {(currentPage - 1) * PAGE_SIZE + index + 1}
@@ -281,7 +309,11 @@ const Tests = () => {
         {/* Pagination */}
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
           <div className="text-sm text-gray-600">
+<<<<<<< HEAD
             Jami {data?.meta.total} ta test
+=======
+            Jami {data.meta?.total || 0} ta test
+>>>>>>> 2067b97 (add)
           </div>
           <div className="flex items-center gap-2">
             <ActionButton
@@ -293,13 +325,21 @@ const Tests = () => {
               Oldingi
             </ActionButton>
             <span className="px-3 py-1.5 text-sm font-medium text-gray-700">
+<<<<<<< HEAD
               {currentPage} / {data?.meta.pageCount}
+=======
+              {currentPage} / {data.meta?.pageCount || 1}
+>>>>>>> 2067b97 (add)
             </span>
             <ActionButton
               variant="secondary"
               size="sm"
               onClick={handleNextPage}
+<<<<<<< HEAD
               disabled={!data?.meta.pageCount || currentPage >= data.meta.pageCount}
+=======
+              disabled={!data.meta?.pageCount || currentPage >= data.meta.pageCount}
+>>>>>>> 2067b97 (add)
             >
               Keyingi
             </ActionButton>

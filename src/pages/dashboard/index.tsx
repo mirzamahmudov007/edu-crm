@@ -2,7 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { getDashboardStats } from '../../services/dashboardService';
 import { getUsers } from '../../services/userService';
 import { getGroups } from '../../services/groupService';
+<<<<<<< HEAD
 import { RiUserLine, RiGroupLine, RiGraduationCapLine, RiBookLine, RiPhoneLine, RiTimeLine, RiTrendingUpLine, RiCalendarLine } from 'react-icons/ri';
+=======
+import { RiUserLine, RiGroupLine, RiGraduationCapLine, RiBookLine, RiPhoneLine, RiTimeLine, RiArrowUpLine, RiCalendarLine } from 'react-icons/ri';
+>>>>>>> 2067b97 (add)
 import { format, isValid } from 'date-fns';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { StatCard } from '../../components/ui/StatCard';
@@ -65,7 +69,11 @@ const Dashboard = () => {
     {
       label: 'Bu oyda qo\'shilgan',
       value: '+12',
+<<<<<<< HEAD
       icon: <RiTrendingUpLine size={24} />
+=======
+      icon: <RiArrowUpLine size={24} />
+>>>>>>> 2067b97 (add)
     }
   ];
 
